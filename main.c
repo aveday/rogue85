@@ -5,7 +5,6 @@
 #include "config.h"
 #include "graphics.h"
 #include "input.h"
-#include "clock.h"
 
 #ifdef DEBUG
 #include "debug.h"
@@ -88,7 +87,6 @@ void draw_room() {
 void setup() {
   init_graphics();
   init_input(repeat = false);
-  time_step();
 
   add_entity(PLAYER, 1);
   add_entity(SKELETON, 3);
@@ -107,17 +105,18 @@ void setup() {
 
 void loop() {
   ++count;
-  uint8_t dt = time_step();
-  uint8_t input = get_input();
+
+  uint8_t input;
+  while(!(input = get_input())) _delay_ms(10);
 
   if (input) {
     take_turn(input);
     draw_ui();
     draw_room();
   }
-  uint8_t load = FPS * dt / 10;
+
   ssd1306_setpos(48, 0);
-  ssd1306_numdecp_font6x8(load);
+  ssd1306_numdecp_font6x8(count);
 }
 
 int main() {
