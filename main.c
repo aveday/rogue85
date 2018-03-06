@@ -1,7 +1,7 @@
-extern "C" {
-#include <ssd1306xled.h>
-}
+#include <avr/io.h>
+#include <util/delay.h>
 
+#include "ssd1306xled.h"
 #include "config.h"
 #include "graphics.h"
 #include "input.h"
@@ -25,8 +25,8 @@ uint8_t player_x = 0, player_y = 0;
 uint8_t count = 0;
 
 typedef struct {
-  uint8_t pos = 0;
-  uint8_t type = 0;
+  uint8_t pos;
+  uint8_t type;
 } entity_t;
 
 entity_t* room[WIDTH*HEIGHT];
@@ -34,8 +34,8 @@ entity_t* room[WIDTH*HEIGHT];
 entity_t entities[MAX_ENTITIES];
 uint8_t entity_count = 1;
 
-sprite_t *ids[] = {
-  &empty_s,
+const sprite_t *ids[] = {
+  0,
   &player_s,
   &skeleton_s,
   &rat_s
@@ -44,7 +44,7 @@ sprite_t *ids[] = {
 void draw_ui() {
   ssd1306_setpos(0, 0);
   ssd1306_string_font6x8("HP");
-  draw_bar(20, 17, 2, 0);
+  draw_bar(20, 7, 2, 0);
 
   ssd1306_setpos(0, 1);
   ssd1306_string_font6x8("MG");
@@ -118,4 +118,9 @@ void loop() {
   uint8_t load = FPS * dt / 10;
   ssd1306_setpos(48, 0);
   ssd1306_numdecp_font6x8(load);
+}
+
+int main() {
+  setup();
+  while(1) loop();
 }

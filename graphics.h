@@ -3,9 +3,9 @@
 typedef uint8_t sprite_t[8];
 
 void init_graphics() {
-  delay(50);
+  _delay_ms(50);
   ssd1306_init();
-  delay(50);
+  _delay_ms(50);
   ssd1306_fill(0);
 }
 
@@ -37,8 +37,6 @@ void draw_bar(
   ssd1306_send_byte(0b01111110);
 	ssd1306_send_data_stop();
 }
-
-const sprite_t empty_s = {0, 0, 0, 0, 0, 0, 0, 0};
 
 const sprite_t brick_s PROGMEM = {
   0b01010101,
