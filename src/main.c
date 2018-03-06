@@ -1,3 +1,5 @@
+#include <math.h>
+#include <stdlib.h>
 #include <avr/io.h>
 #include <util/delay.h>
 
@@ -18,8 +20,6 @@
 #define PLAYER 1
 #define SKELETON 2
 #define RAT 3
-
-uint8_t player_x = 0, player_y = 0;
 
 uint8_t count = 0;
 
@@ -56,23 +56,7 @@ void add_entity(uint8_t type, uint8_t pos) {
   ++entity_count;
 }
 
-void take_turn(uint8_t input) {
-  room[entities[PLAYER].pos] = &(entities[EMPTY]);
-
-  if (input & LEFT && entities[PLAYER].pos % WIDTH > 0)
-    --entities[PLAYER].pos;
-  if (input & RIGHT && entities[PLAYER].pos % WIDTH < WIDTH-1)
-    ++entities[PLAYER].pos;
-  if (input & UP && entities[PLAYER].pos / WIDTH > 0)
-    entities[PLAYER].pos -= WIDTH;
-  if (input & DOWN && entities[PLAYER].pos / WIDTH < HEIGHT-1)
-    entities[PLAYER].pos += WIDTH;
-
-  room[entities[PLAYER].pos] = &(entities[PLAYER]);
-}
-
 void draw_room() {
-
   ssd1306_setpos(0, 2);
 	ssd1306_send_data_start();
   for (int i = 0; i < 8 * WIDTH * HEIGHT; ++i) {
@@ -82,6 +66,48 @@ void draw_room() {
     ssd1306_send_byte(line);
   }
 	ssd1306_send_data_stop();
+}
+
+bool can_move(uint8_t pos, int8_t dx, int8_t dy) {
+  if ( pos % WIDTH + dx < 0 || pos % WIDTH + dx >= WIDTH // H out of bounds
+    || pos / WIDTH + dy < 0 || pos / WIDTH + dx >= HEIGHT // V out of bounds
+    || room[pos + dx + WIDTH * dy]->type) // space occupied
+    return false;
+  return true;
+}
+
+void move(entity_t* entity, int8_t dx, int8_t dy) {
+  room[entity->pos] = &(entities[EMPTY]);
+  entity->pos += dx + WIDTH * dy;
+  room[entity->pos] = entity;
+  draw_room();
+}
+
+int8_t sign(int8_t a) {
+  if (a > 0) return 1;
+  if (a < 0) return -1;
+  return 0;
+}
+
+void take_turn(uint8_t input) {
+  int8_t dx = (bool)(input & RIGHT) - (bool)(input & LEFT);
+  int8_t dy = (bool)(input & DOWN) - (bool)(input & UP);
+
+  if (can_move(entities[PLAYER].pos, dx, dy))
+    move(&entities[PLAYER], dx, dy);
+
+  int8_t px = entities[PLAYER].pos % WIDTH;
+  int8_t py = entities[PLAYER].pos / WIDTH;
+
+  for (uint8_t i = 2; i < entity_count; ++i) {
+    int8_t ix = entities[i].pos % WIDTH;
+    int8_t iy = entities[i].pos / WIDTH;
+    int8_t dx = sign(px - ix);
+    int8_t dy = sign(py - iy);
+
+    if (can_move(entities[i].pos, dx, dy))
+      move(&entities[i], dx, dy);
+  }
 }
 
 void setup() {
