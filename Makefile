@@ -1,37 +1,32 @@
-#ALTERNATE_CORE = tiny
-#BOARD_TAG = attiny85at8
-#
-#ISP_PROG = usbasp
-#OBJDIR = build
-#
-#include /usr/share/arduino/Arduino.mk
+BAUD=19200
+MCU=attiny85
+FREQ=8000000 # 8 Mhz
+PROGRAMMER=usbasp
 
-baud=19200
-avrType=attiny85
-avrFreq=8000000 # 8 Mhz
-programmerType=usbasp
-objDir=build
+CC=avr-gcc
+CFLAGS=-DF_CPU=${FREQ} -mmcu=${MCU} -Wall -Werror -Wextra -Os
 
-cflags=-DF_CPU=$(avrFreq) -mmcu=$(avrType) -Wall -Werror -Wextra -Os
-objects=$(patsubst %.c,%.o,$(wildcard *.c))
+SRC=${wildcard src/*.c}
+OBJ=${SRC:src/%.c=obj/%.o}
+LIB=${wildcard lib/*/*.o}
 
-.PHONY: flash clean
+.PHONY: all flash clean
 
 all: main.hex
 
-%.o: %.c
-	mkdir -p $(objDir)
-	avr-gcc $(cflags) -c $< -o $@
+obj/%.o: src/%.c
+	mkdir -p obj
+	${CC} ${CFLAGS} -I./lib -c $< -o $@
 
-main.elf: $(objects)
-	avr-gcc $(cflags) -o $@ $^
+main.elf: ${OBJ}
+	${CC} ${CFLAGS} ${LIB} -o $@ $^
 
 main.hex: main.elf
 	avr-objcopy -j .text -j .data -O ihex $^ $@
 
 flash: main.hex
-	avrdude -p$(avrType) -c$(programmerType) -b$(baud) -V -v -U flash:w:$<
+	avrdude -p${MCU} -c${PROGRAMMER} -b${BAUD} -V -v -U flash:w:$<
 
 clean:
-	rm -f *.o *.elf *.hex
+	rm -rf obj *.elf *.hex
 

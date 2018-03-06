@@ -1,1 +1,4 @@
-build/*
+obj
+lib
+*.hex
+*.elf

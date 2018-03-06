@@ -1,7 +1,7 @@
 #include <avr/io.h>
 #include <util/delay.h>
 
-#include "ssd1306xled.h"
+#include "ssd1306xled/ssd1306xled.h"
 #include "config.h"
 #include "graphics.h"
 #include "input.h"
