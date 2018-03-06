@@ -104,7 +104,8 @@ void setup() {
 }
 
 void loop() {
-  ++count;
+  ssd1306_setpos(48, 1);
+  ssd1306_numdecp_font6x8(count++);
 
   uint8_t input;
   while(!(input = get_input())) _delay_ms(10);
@@ -114,9 +115,6 @@ void loop() {
     draw_ui();
     draw_room();
   }
-
-  ssd1306_setpos(48, 0);
-  ssd1306_numdecp_font6x8(count);
 }
 
 int main() {
