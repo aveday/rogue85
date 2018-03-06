@@ -69,11 +69,13 @@ void draw_room() {
 }
 
 bool can_move(uint8_t pos, int8_t dx, int8_t dy) {
-  if ( pos % WIDTH + dx < 0 || pos % WIDTH + dx >= WIDTH // H out of bounds
-    || pos / WIDTH + dy < 0 || pos / WIDTH + dx >= HEIGHT // V out of bounds
-    || room[pos + dx + WIDTH * dy]->type) // space occupied
-    return false;
-  return true;
+  return !(
+       (pos % WIDTH + dx < 0)
+    || (pos % WIDTH + dx >= WIDTH)
+    || (pos / WIDTH + dy < 0)
+    || (pos / WIDTH + dy >= HEIGHT)
+    || (room[pos + dx + WIDTH * dy]->type)
+  );
 }
 
 void move(entity_t* entity, int8_t dx, int8_t dy) {
