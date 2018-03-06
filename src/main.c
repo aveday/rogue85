@@ -126,7 +126,6 @@ void setup() {
 
   draw_ui();
   draw_room();
-
 }
 
 void loop() {
@@ -136,11 +135,9 @@ void loop() {
   uint8_t input;
   while(!(input = get_input())) _delay_ms(10);
 
-  if (input) {
-    take_turn(input);
-    draw_ui();
-    draw_room();
-  }
+  take_turn(input);
+  draw_ui();
+  draw_room();
 }
 
 int main() {

@@ -1,6 +1,6 @@
 #include "input.h"
 
-const uint8_t pressed_s[] = {
+uint8_t pressed_s[] = {
   0b00000000,
   0b00111100,
   0b01111110,
@@ -11,7 +11,7 @@ const uint8_t pressed_s[] = {
   0b00000000
 };
 
-const uint8_t unpressed_s[] = {
+uint8_t unpressed_s[] = {
   0b00000000,
   0b00111100,
   0b01000010,
@@ -23,14 +23,14 @@ const uint8_t unpressed_s[] = {
 };
 
 void draw_buttons(uint8_t input) {
-  draw_sprite(input & UP ? pressed_s : unpressed_s,  1, 2);
-  draw_sprite(input & DOWN ? pressed_s : unpressed_s,  1, 4);
-  draw_sprite(input & LEFT ? pressed_s : unpressed_s,  0, 3);
-  draw_sprite(input & RIGHT ? pressed_s : unpressed_s,  2, 3);
-  draw_sprite(input & A ? pressed_s : unpressed_s, 14, 4);
-  draw_sprite(input & B ? pressed_s : unpressed_s, 15, 3);
-  draw_sprite(input & X ? pressed_s : unpressed_s, 13, 3);
-  draw_sprite(input & Y ? pressed_s : unpressed_s, 14, 2);
+  draw_sprite((input & UP) ? pressed_s : unpressed_s,  1, 2);
+  draw_sprite((input & DOWN) ? pressed_s : unpressed_s,  1, 4);
+  draw_sprite((input & LEFT) ? pressed_s : unpressed_s,  0, 3);
+  draw_sprite((input & RIGHT) ? pressed_s : unpressed_s,  2, 3);
+  draw_sprite((input & A) ? pressed_s : unpressed_s, 14, 4);
+  draw_sprite((input & B) ? pressed_s : unpressed_s, 15, 3);
+  draw_sprite((input & X) ? pressed_s : unpressed_s, 13, 3);
+  draw_sprite((input & Y) ? pressed_s : unpressed_s, 14, 2);
 }
 
 void draw_voltages(int left_voltage, int right_voltage) {
@@ -41,7 +41,39 @@ void draw_voltages(int left_voltage, int right_voltage) {
 }
 
 void draw_load(int dt) {
-  uint8_t load = FPS * dt / 10;
+  uint8_t load = dt / 10;
   ssd1306_setpos(48, 0);
   ssd1306_numdecp_font6x8(load);
+}
+
+void analyse_input() {
+  uint8_t voltage = read_adc(LEFT_INPUT);
+  if (voltage < 250) {
+    if (!hold) {
+      for (uint8_t i = 0; i < 8; ++i) {
+        ssd1306_setpos(48, i);
+        ssd1306_string_font6x8("          ");
+      }
+    }
+    hold = true;
+    hold_count++;
+    if (voltage < hold_voltage) {
+      hold_voltage = voltage;
+      ssd1306_setpos(68, row);
+      ssd1306_numdecp_font6x8(hold_count);
+      ssd1306_setpos(48, row++);
+      ssd1306_numdecp_font6x8(hold_voltage);
+    }
+  } else {
+    if (hold) {
+      ssd1306_setpos(72, row);
+      ssd1306_numdecp_font6x8(hold_count);
+      ssd1306_setpos(52, row++);
+      ssd1306_numdecp_font6x8(hold_voltage);
+    }
+    hold = false;
+    hold_voltage = 255;
+    hold_count = 0;
+    row = 0;
+  }
 }
