@@ -30,8 +30,8 @@ main.hex: main.elf
 	avr-objcopy -j .text -j .data -O ihex $^ $@
 
 flash: main.hex
-	avrdude -p$(avrType) -c$(programmerType) -b$(baud) -v -U flash:w:$<
+	avrdude -p$(avrType) -c$(programmerType) -b$(baud) -V -v -U flash:w:$<
 
 clean:
-	rm -f *.o
+	rm -f *.o *.elf *.hex
 
