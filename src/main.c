@@ -48,6 +48,10 @@ void draw_ui() {
   ssd1306_setpos(0, 1);
   ssd1306_string_font6x8("MG");
   draw_bar(20, 12, 2, 1);
+
+  ssd1306_setpos(80, 1);
+  ssd1306_string_font6x8("turn ");
+  ssd1306_numdec_font6x8(count++);
 }
 
 void add_entity(uint8_t type, uint8_t pos) {
@@ -128,8 +132,6 @@ void setup() {
 }
 
 void loop() {
-  ssd1306_setpos(48, 1);
-  ssd1306_numdecp_font6x8(count++);
   draw_ui();
   draw_room();
 
