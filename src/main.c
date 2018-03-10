@@ -135,7 +135,7 @@ void loop() {
   ssd1306_numdecp_font6x8(count++);
 
   uint8_t input;
-  while(!(input = get_input())) _delay_ms(10);
+  while(!(input = get_input(LEFT_INPUT) << 4)) _delay_ms(10);
 
   take_turn(input);
   draw_ui();

@@ -24,7 +24,7 @@ uint8_t Vdefs[] = {
   142, 133, 125, 121, 116, 109, 105, 99
 };
 */
-uint8_t Vdefs[] = { 230, 209, 178, 142 };
+const uint8_t Vdefs[] = { 230, 209, 178, 142 };
 
 void init_input(bool r) {
   repeat = r;
@@ -41,38 +41,20 @@ uint8_t read_adc(uint8_t mux) {
   return ADCH;
 }
 
-uint8_t get_input() {
-  //TODO auto trigger
+uint8_t get_input(uint8_t channel) {
+  //TODO input using interrupts
 
-  uint8_t left_voltage = read_adc(LEFT_INPUT);
-  if (left_voltage < 250)
-    for (uint8_t i = 0; i < SAMPLES; ++i) {
-      uint8_t v = read_adc(LEFT_INPUT);
-      left_voltage = v < left_voltage ? v : left_voltage;
-    }
+  uint8_t voltage = ~0;
+  for (uint8_t i = 0; i < SAMPLES; ++i) {
+    uint8_t sample = read_adc(channel);
+    voltage = sample < voltage ? sample : voltage;
+  }
 
-  int8_t left_input = 0;
-  if (left_voltage < 0xFF - INPUT_SENSITIVITY )
-    for (uint8_t i = 0; i < 4; ++i)
-      if (left_voltage < Vdefs[i] + INPUT_SENSITIVITY &&
-          left_voltage > Vdefs[i] - INPUT_SENSITIVITY )
-        left_input = 1 << i;
-
-  uint8_t right_voltage = read_adc(RIGHT_INPUT);
-  if (right_voltage < 250)
-    for (uint8_t i = 0; i < SAMPLES; ++i) {
-      uint8_t v = read_adc(RIGHT_INPUT);
-      right_voltage = v < right_voltage ? v : right_voltage;
-    }
-
-  int8_t right_input = 0;
-  if (right_voltage < 0xFF - INPUT_SENSITIVITY )
-    for (uint8_t i = 0; i < 4; ++i)
-      if (right_voltage < Vdefs[i] + INPUT_SENSITIVITY &&
-          right_voltage > Vdefs[i] - INPUT_SENSITIVITY )
-        right_input = 1 << i;
-
-  uint8_t input = (left_input << 4) + right_input;
+  int8_t input = 0;
+  for (uint8_t i = 0; i < 4; ++i)
+    if (voltage < Vdefs[i] + INPUT_SENSITIVITY &&
+        voltage > Vdefs[i] - INPUT_SENSITIVITY )
+      input = 1 << i;
 
   if (!repeat) {
     if (input && hold) return 0;
