@@ -3,8 +3,8 @@
 #ifndef INPUT_H
 #define INPUT_H
 
-#define SAMPLES 20
-#define BORDER_ADJUST 2
+#define SAMPLES 10
+#define INPUT_SENSITIVITY 8
 
 #define UP 1<<4
 #define DOWN 1<<7
@@ -20,10 +20,13 @@ uint8_t input = 0;
 bool hold = false;
 bool repeat = false;
 
+/* n-button rollover
 uint8_t Vdefs[] = {
   255, 230, 209, 192, 178, 166, 156, 149,
   142, 133, 125, 121, 116, 109, 105, 99
 };
+*/
+uint8_t Vdefs[] = { 230, 209, 178, 142 };
 
 void init_input(bool r) {
   repeat = r;
@@ -50,10 +53,12 @@ uint8_t get_input() {
       left_voltage = v < left_voltage ? v : left_voltage;
     }
 
-
-  int8_t left_input = -1;
-  while(Vdefs[++left_input] - BORDER_ADJUST > left_voltage)
-    continue;
+  int8_t left_input = 0;
+  if (left_voltage < 0xFF - INPUT_SENSITIVITY )
+    for (uint8_t i = 0; i < 4; ++i)
+      if (left_voltage < Vdefs[i] + INPUT_SENSITIVITY &&
+          left_voltage > Vdefs[i] - INPUT_SENSITIVITY )
+        left_input = 1 << i;
 
   uint8_t right_voltage = read_adc(RIGHT_INPUT);
   if (right_voltage < 250)
@@ -62,9 +67,12 @@ uint8_t get_input() {
       right_voltage = v < right_voltage ? v : right_voltage;
     }
 
-  int8_t right_input = -1;
-  while(Vdefs[++right_input] - BORDER_ADJUST > right_voltage)
-    continue;
+  int8_t right_input = 0;
+  if (right_voltage < 0xFF - INPUT_SENSITIVITY )
+    for (uint8_t i = 0; i < 4; ++i)
+      if (right_voltage < Vdefs[i] + INPUT_SENSITIVITY &&
+          right_voltage > Vdefs[i] - INPUT_SENSITIVITY )
+        right_input = 1 << i;
 
   uint8_t input = (left_input << 4) + right_input;
 
