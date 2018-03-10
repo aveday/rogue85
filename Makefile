@@ -9,16 +9,12 @@ CFLAGS=-DF_CPU=${FREQ} -mmcu=${MCU} -Wall -Werror -Wfatal-errors -Wextra -Os
 SRC=${wildcard src/*.c}
 OBJ=${SRC:src/%.c=obj/%.o}
 LIB=${wildcard lib/*/*.o}
+DEP=${OBJ:.o=.d}
 
 .PHONY: all flash clean
 
 all: main.hex
 	@avr-size --mcu=${MCU} -C main.elf
-
-obj/%.o: src/%.c
-	@echo CC $@
-	@mkdir -p obj
-	@${CC} ${CFLAGS} -I./lib -c $< -o $@
 
 main.elf: ${OBJ}
 	@echo LD $@
@@ -27,10 +23,16 @@ main.elf: ${OBJ}
 main.hex: main.elf
 	@avr-objcopy -j .text -j .data -O ihex $^ $@
 
+-include ${DEP}
+
+obj/%.o: src/%.c
+	@echo CC $@
+	@mkdir -p obj
+	@${CC} ${CFLAGS} -Ilib -Isrc -MMD -MP -c $< -o $@
+
 flash: main.hex
 	@avrdude -p${MCU} -c${PROGRAMMER} -b${BAUD} -V -U flash:w:$<
 	@avr-size --mcu=${MCU} -C main.elf
 
 clean:
 	@rm -rf obj *.elf *.hex
-
