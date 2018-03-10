@@ -1,12 +1,13 @@
 #include <math.h>
 #include <stdlib.h>
 #include <avr/io.h>
+#include <avr/wdt.h>
 #include <util/delay.h>
 
 #include "ssd1306xled/ssd1306xled.h"
 #include "config.h"
-#include "graphics.h"
 #include "input.h"
+#include "graphics.h"
 
 #ifdef DEBUG
 #include "debug.h"
@@ -22,6 +23,8 @@
 #define RAT 3
 
 uint8_t count = 0;
+uint8_t hp = 10;
+
 
 typedef struct {
   uint8_t pos;
@@ -40,14 +43,19 @@ const sprite_t *ids[] = {
   &rat_s
 };
 
+void die() {
+  wdt_enable(WDTO_2S);
+  for (;;) ssd1306_string_font6x8("YOU DIED. ");
+}
+
 void draw_ui() {
   ssd1306_setpos(0, 0);
   ssd1306_string_font6x8("HP");
-  draw_bar(20, 7, 2, 0);
+  draw_bar(20, hp);
 
   ssd1306_setpos(0, 1);
   ssd1306_string_font6x8("MG");
-  draw_bar(20, 12, 2, 1);
+  draw_bar(20, 12);
 
   ssd1306_setpos(80, 1);
   ssd1306_string_font6x8("turn ");
@@ -86,7 +94,6 @@ void move(entity_t* entity, int8_t dx, int8_t dy) {
   room[entity->pos] = &(entities[EMPTY]);
   entity->pos += dx + WIDTH * dy;
   room[entity->pos] = entity;
-  draw_room();
 }
 
 int8_t sign(int8_t a) {
@@ -105,6 +112,9 @@ void take_turn(uint8_t input) {
   int8_t px = entities[PLAYER].pos % WIDTH;
   int8_t py = entities[PLAYER].pos / WIDTH;
 
+  draw_room();
+  _delay_ms(100);
+
   for (uint8_t i = 2; i < entity_count; ++i) {
     int8_t ix = entities[i].pos % WIDTH;
     int8_t iy = entities[i].pos / WIDTH;
@@ -113,10 +123,30 @@ void take_turn(uint8_t input) {
 
     if (can_move(entities[i].pos, dx, dy))
       move(&entities[i], dx, dy);
+
+    uint8_t diff = entities[PLAYER].pos > entities[i].pos
+        ? entities[PLAYER].pos - entities[i].pos
+        : entities[i].pos - entities[PLAYER].pos;
+    if (diff == 1 || diff == WIDTH || diff == HEIGHT) --hp;
+    if(!hp) die();
   }
 }
 
-void setup() {
+int loop() {
+  draw_ui();
+  draw_room();
+
+  uint8_t input;
+  while(!(input = get_input(LEFT_INPUT) << 4)) _delay_ms(10);
+
+  take_turn(input);
+  return 0;
+}
+
+int main() {
+  MCUSR = 0x00;
+  wdt_disable();
+
   init_graphics();
   init_input(repeat = false);
 
@@ -129,19 +159,6 @@ void setup() {
 
   for (int i = 1; i < entity_count; ++i)
     room[entities[i].pos] = &(entities[i]);
-}
 
-void loop() {
-  draw_ui();
-  draw_room();
-
-  uint8_t input;
-  while(!(input = get_input(LEFT_INPUT) << 4)) _delay_ms(10);
-
-  take_turn(input);
-}
-
-int main() {
-  setup();
-  while(1) loop();
+  while(!loop()) continue;
 }

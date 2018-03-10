@@ -19,11 +19,8 @@ void draw_sprite(sprite_t sprite, uint8_t x, uint8_t y) {
 
 void draw_bar(
     const uint8_t length,
-    const uint8_t fill,
-    const uint8_t x,
-    const uint8_t y)
+    const uint8_t fill)
 {
-  ssd1306_setpos(x * 8, y);
 	ssd1306_send_data_start();
   ssd1306_send_byte(0b01111110);
   for (uint8_t i = 0; i < fill; ++i)
