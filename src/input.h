@@ -15,8 +15,6 @@
 #define X 1<<1
 #define Y 1<<0
 
-uint8_t prev_input = 0;
-uint8_t input = 0;
 bool hold = false;
 bool repeat = false;
 
