@@ -22,12 +22,15 @@ void draw_bar(
     const uint8_t fill)
 {
 	ssd1306_send_data_start();
+  ssd1306_send_byte(0);
   ssd1306_send_byte(0b01111110);
+  ssd1306_send_byte(0b01000010);
   for (uint8_t i = 0; i < fill; ++i)
-    ssd1306_send_byte(0b01111110);
+    ssd1306_send_byte(0b01011010);
   for (uint8_t i = 0; i < length - fill; ++i)
     ssd1306_send_byte(0b01000010);
-  ssd1306_send_byte(0b01111110);
+  ssd1306_send_byte(0b1111110);
+  ssd1306_send_byte(0);
 	ssd1306_send_data_stop();
 }
 
