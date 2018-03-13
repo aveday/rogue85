@@ -21,6 +21,7 @@
 #define PLAYER 1
 #define SKELETON 2
 #define RAT 3
+#define INVALID 255
 
 uint8_t count = 0;
 uint8_t hp = 10;
@@ -80,14 +81,11 @@ void draw_room() {
 	ssd1306_send_data_stop();
 }
 
-bool can_move(uint8_t pos, int8_t dx, int8_t dy) {
-  return !(
-       (pos % WIDTH + dx < 0)
-    || (pos % WIDTH + dx >= WIDTH)
-    || (pos / WIDTH + dy < 0)
-    || (pos / WIDTH + dy >= HEIGHT)
-    || (room[pos + dx + WIDTH * dy]->type)
-  );
+entity_t* query_adjacent(uint8_t pos, int8_t dx, int8_t dy) {
+  if ((pos + dx + WIDTH*dy) / WIDTH != pos / WIDTH + dy)
+    return &entities[INVALID];
+
+  return room[pos + dx + WIDTH * dy];
 }
 
 void move(entity_t* entity, int8_t dx, int8_t dy) {
@@ -106,7 +104,7 @@ void take_turn(uint8_t input) {
   int8_t dx = (bool)(input & RIGHT) - (bool)(input & LEFT);
   int8_t dy = (bool)(input & DOWN) - (bool)(input & UP);
 
-  if (can_move(entities[PLAYER].pos, dx, dy))
+  if (query_adjacent(entities[PLAYER].pos, dx, dy) == &entities[EMPTY])
     move(&entities[PLAYER], dx, dy);
 
   int8_t px = entities[PLAYER].pos % WIDTH;
@@ -121,7 +119,7 @@ void take_turn(uint8_t input) {
     int8_t dx = sign(px - ix);
     int8_t dy = sign(py - iy);
 
-    if (can_move(entities[i].pos, dx, dy))
+    if (query_adjacent(entities[i].pos, dx, dy) == &entities[EMPTY])
       move(&entities[i], dx, dy);
 
     uint8_t diff = entities[PLAYER].pos > entities[i].pos
@@ -151,8 +149,6 @@ int main() {
   init_input(repeat = false);
 
   add_entity(PLAYER, 1);
-  add_entity(SKELETON, 3);
-  add_entity(RAT, 30);
 
   for (int i = 0; i < WIDTH*HEIGHT; ++i)
     room[i] = &(entities[EMPTY]);
