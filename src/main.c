@@ -23,9 +23,10 @@
 #define RAT 3
 #define INVALID 255
 
-uint8_t count = 0;
-uint8_t hp = 10;
+#define MAX_HP 20
 
+uint8_t count = 0;
+uint8_t hp = MAX_HP;
 
 typedef struct {
   uint8_t pos;
@@ -52,11 +53,7 @@ void die() {
 void draw_ui() {
   ssd1306_setpos(0, 0);
   ssd1306_string_font6x8("HP");
-  draw_bar(20, hp);
-
-  ssd1306_setpos(0, 1);
-  ssd1306_string_font6x8("MG");
-  draw_bar(20, 12);
+  draw_bar(MAX_HP, hp);
 
   ssd1306_setpos(80, 1);
   ssd1306_string_font6x8("turn ");
@@ -82,10 +79,9 @@ void draw_room() {
 }
 
 entity_t* query_adjacent(uint8_t pos, int8_t dx, int8_t dy) {
-  if ((pos + dx + WIDTH*dy) / WIDTH != pos / WIDTH + dy)
-    return &entities[INVALID];
-
-  return room[pos + dx + WIDTH * dy];
+  return ((pos + dx + WIDTH*dy) / WIDTH != pos / WIDTH + dy)
+    ? &entities[INVALID]
+    : room[pos + dx + WIDTH * dy];
 }
 
 void move(entity_t* entity, int8_t dx, int8_t dy) {

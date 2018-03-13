@@ -29,6 +29,7 @@ void draw_bar(
     ssd1306_send_byte(0b01011010);
   for (uint8_t i = 0; i < length - fill; ++i)
     ssd1306_send_byte(0b01000010);
+  ssd1306_send_byte(0b01000010);
   ssd1306_send_byte(0b1111110);
   ssd1306_send_byte(0);
 	ssd1306_send_data_stop();
