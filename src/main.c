@@ -8,42 +8,16 @@
 #include "config.h"
 #include "input.h"
 #include "graphics.h"
+#include "entity.h"
 
 #ifdef DEBUG
 #include "debug.h"
 #endif
 
-#define WIDTH 16
-#define HEIGHT 6
-#define MAX_ENTITIES 30
-
-#define EMPTY 0
-#define PLAYER 1
-#define SKELETON 2
-#define RAT 3
-#define INVALID 255
-
 #define MAX_HP 20
 
 uint8_t count = 0;
 uint8_t hp = MAX_HP;
-
-typedef struct {
-  uint8_t pos;
-  uint8_t type;
-} entity_t;
-
-entity_t* room[WIDTH*HEIGHT];
-
-entity_t entities[MAX_ENTITIES];
-uint8_t entity_count = 1;
-
-const sprite_t *ids[] = {
-  0,
-  &player_s,
-  &skeleton_s,
-  &rat_s
-};
 
 void die() {
   wdt_enable(WDTO_2S);
@@ -60,34 +34,16 @@ void draw_ui() {
   ssd1306_numdec_font6x8(count++);
 }
 
-void add_entity(uint8_t type, uint8_t pos) {
-  entities[entity_count].type = type;
-  entities[entity_count].pos = pos;
-  ++entity_count;
-}
-
 void draw_room() {
   ssd1306_setpos(0, 2);
-	ssd1306_send_data_start();
+  ssd1306_send_data_start();
   for (int i = 0; i < 8 * WIDTH * HEIGHT; ++i) {
-    uint8_t line = room[i/8]->type ? pgm_read_byte_near(
-      (*(ids[(room[i/8])->type])) + (i%8))
-     : 0;
+    entity_t e = entities[room[i/8]];
+    if (e.templateId == INVALID) continue;
+    uint8_t line = pgm_read_byte_near(*templates[e.templateId].sprite + i%8);
     ssd1306_send_byte(line);
   }
-	ssd1306_send_data_stop();
-}
-
-entity_t* query_adjacent(uint8_t pos, int8_t dx, int8_t dy) {
-  return ((pos + dx + WIDTH*dy) / WIDTH != pos / WIDTH + dy)
-    ? &entities[INVALID]
-    : room[pos + dx + WIDTH * dy];
-}
-
-void move(entity_t* entity, int8_t dx, int8_t dy) {
-  room[entity->pos] = &(entities[EMPTY]);
-  entity->pos += dx + WIDTH * dy;
-  room[entity->pos] = entity;
+  ssd1306_send_data_stop();
 }
 
 int8_t sign(int8_t a) {
@@ -97,11 +53,11 @@ int8_t sign(int8_t a) {
 }
 
 void take_turn(uint8_t input) {
-  int8_t dx = (bool)(input & RIGHT) - (bool)(input & LEFT);
-  int8_t dy = (bool)(input & DOWN) - (bool)(input & UP);
+  int8_t ix = (bool)(input & RIGHT) - (bool)(input & LEFT);
+  int8_t iy = (bool)(input & DOWN) - (bool)(input & UP);
 
-  if (query_adjacent(entities[PLAYER].pos, dx, dy) == &entities[EMPTY])
-    move(&entities[PLAYER], dx, dy);
+  if (query_adjacent(PLAYER, ix, iy) == EMPTY)
+    move(PLAYER, ix, iy);
 
   int8_t px = entities[PLAYER].pos % WIDTH;
   int8_t py = entities[PLAYER].pos / WIDTH;
@@ -109,20 +65,23 @@ void take_turn(uint8_t input) {
   draw_room();
   _delay_ms(100);
 
-  for (uint8_t i = 2; i < entity_count; ++i) {
-    int8_t ix = entities[i].pos % WIDTH;
-    int8_t iy = entities[i].pos / WIDTH;
-    int8_t dx = sign(px - ix);
-    int8_t dy = sign(py - iy);
+  for (uint8_t id = PLAYER+1; id < MAX_ENTITIES; ++id) {
+    if (entities[id].templateId == EMPTY ||
+        entities[id].templateId == INVALID) continue;
+    // FOLLOW
+    int8_t ex = entities[id].pos % WIDTH;
+    int8_t ey = entities[id].pos / WIDTH;
+    int8_t dx = sign(px - ex);
+    int8_t dy = sign(py - ey);
+    if (query_adjacent(id, dx, dy) == EMPTY)
+      move(id, dx, dy);
 
-    if (query_adjacent(entities[i].pos, dx, dy) == &entities[EMPTY])
-      move(&entities[i], dx, dy);
-
-    uint8_t diff = entities[PLAYER].pos > entities[i].pos
-        ? entities[PLAYER].pos - entities[i].pos
-        : entities[i].pos - entities[PLAYER].pos;
+    // ATTACK
+    uint8_t diff = entities[PLAYER].pos > entities[id].pos
+      ? entities[PLAYER].pos - entities[id].pos
+      : entities[id].pos - entities[PLAYER].pos;
     if (diff == 1 || diff == WIDTH || diff == HEIGHT) --hp;
-    if(!hp) die();
+    if (!hp) die();
   }
 }
 
@@ -144,13 +103,20 @@ int main() {
   init_graphics();
   init_input(repeat = false);
 
-  add_entity(PLAYER, 1);
-
+  // initialize entity and room arrays
+  for (int i = 0; i < MAX_ENTITIES; ++i) {
+    entities[i].templateId = INVALID;
+    entities[i].pos = INVALID;
+  }
   for (int i = 0; i < WIDTH*HEIGHT; ++i)
-    room[i] = &(entities[EMPTY]);
+    room[i] = EMPTY;
 
-  for (int i = 1; i < entity_count; ++i)
-    room[entities[i].pos] = &(entities[i]);
+  add_entity(EMPTY, INVALID);
+  add_entity(PLAYER, 1);
+  add_entity(RAT, 30);
+
+  for (int id = 1; id < MAX_ENTITIES; ++id)
+    room[entities[id].pos] = id;
 
   while(!loop()) continue;
 }

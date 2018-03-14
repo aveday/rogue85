@@ -1,3 +1,6 @@
+#ifndef GRAPHICS_H
+#define GRAPHICS_H
+
 #include <avr/pgmspace.h>
 
 typedef uint8_t sprite_t[8];
@@ -46,6 +49,8 @@ const sprite_t brick_s PROGMEM = {
   0b11011101,
 };
 
+const sprite_t empty_s PROGMEM= { 0, 0, 0, 0, 0, 0, 0, 0 };
+
 const sprite_t player_s PROGMEM= {
   0b00000000,
   0b00010000,
@@ -78,3 +83,5 @@ const sprite_t rat_s PROGMEM = {
   0b01010000,
   0b00100000
 };
+
+#endif
