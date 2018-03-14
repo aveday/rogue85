@@ -36,7 +36,7 @@ bool is_targetable(entityId id) {
   return id > EMPTY && id < INVALID;
 }
 
-void add_entity(uint8_t templateId, uint8_t pos) {
+entityId add_entity(uint8_t templateId, uint8_t pos) {
   for (entityId id = 0; id < MAX_ENTITIES; ++id) {
     if (entities[id].templateId != INVALID) continue;
 
@@ -46,8 +46,9 @@ void add_entity(uint8_t templateId, uint8_t pos) {
         &templates[templateId].max_hp);
 
     room[pos] = id;
-    break;
-  };
+    return id;
+  }
+  return INVALID;
 }
 
 void remove_entity(entityId id) {
