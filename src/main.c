@@ -55,9 +55,17 @@ int8_t sign(int8_t a) {
 }
 
 bool take_turn(uint8_t input) {
-  int8_t dx = (bool)(input & RIGHT) - (bool)(input & LEFT);
-  int8_t dy = (bool)(input & DOWN) - (bool)(input & UP);
-  return move(PLAYER, dx, dy);
+  int8_t dx = input & LEFT ? -1 : input & RIGHT ? 1 : 0;
+  int8_t dy = input & UP ? -1 : input & DOWN ? 1 : 0;
+
+  switch(input & 0b1111) {
+    case 0: return move(PLAYER, dx, dy);
+    case A: return attack(PLAYER, dx, dy);
+    case B: return false;
+    case X: return false;
+    case Y: return false;
+  }
+  return false;
 }
 
 bool loop(bool held) {
@@ -119,20 +127,12 @@ int main() {
   init_input();
 
   // initialize entity and room arrays
-  for (int i = 0; i < MAX_ENTITIES; ++i) {
-    entities[i].templateId = INVALID;
-    entities[i].pos = INVALID;
-    entities[i].hp = INVALID;
-  }
-  for (int i = 0; i < WIDTH*HEIGHT; ++i)
-    room[i] = EMPTY;
+  for (int i = 0; i < MAX_ENTITIES; ++i) remove_entity(i);
+  for (int i = 0; i < WIDTH*HEIGHT; ++i) room[i] = EMPTY;
 
   add_entity(EMPTY, INVALID);
   add_entity(PLAYER, 1);
   add_entity(RAT, 30);
-
-  for (int id = 1; id < MAX_ENTITIES; ++id)
-    room[entities[id].pos] = id;
 
   bool held = false;
   for (;;) held = loop(held);

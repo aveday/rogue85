@@ -31,6 +31,11 @@ const template_t templates[] PROGMEM = {
   {RAT_S,      1}
 };
 
+//TODO
+bool is_enemy(entityId id) {
+  return id > PLAYER && id < INVALID;
+}
+
 void add_entity(uint8_t templateId, uint8_t pos) {
   for (entityId id = 0; id < MAX_ENTITIES; ++id) {
     if (entities[id].templateId != INVALID) continue;
@@ -40,8 +45,16 @@ void add_entity(uint8_t templateId, uint8_t pos) {
     entities[id].hp = pgm_read_byte_near(
         &templates[templateId].max_hp);
 
+    room[pos] = id;
     break;
   };
+}
+
+void remove_entity(entityId id) {
+  room[entities[id].pos] = EMPTY;
+  entities[id].templateId = INVALID;
+  entities[id].pos = INVALID;
+  entities[id].hp = INVALID;
 }
 
 entityId query_adjacent(entityId id, int8_t dx, int8_t dy) {
@@ -56,5 +69,17 @@ bool move(entityId id, int8_t dx, int8_t dy) {
   room[entities[id].pos] = EMPTY;
   entities[id].pos += dx + WIDTH * dy;
   room[entities[id].pos] = id;
+  return true;
+}
+
+bool attack(entityId id, int8_t dx, int8_t dy) {
+  entityId target = query_adjacent(id, dx, dy);
+  if (!is_enemy(target))
+    return false;
+
+  entities[target].hp--;
+  if (!entities[target].hp)
+    remove_entity(target);
+
   return true;
 }
