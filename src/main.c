@@ -68,26 +68,18 @@ bool take_turn(uint8_t input) {
   return false;
 }
 
-bool loop(bool held) {
+void loop() {
   // RENDER
   draw_ui();
   draw_room();
 
   // HANDLE INPUT
-  uint8_t left_input, right_input;
-  do {
-    for (;;) {
-      left_input = get_input(LEFT_INPUT);
-      if (!left_input) {
-        held = false;
-      } else if (!held) {
-        right_input = get_input(RIGHT_INPUT);
-        held = true;
-        break;
-      }
-      _delay_ms(10);
-    }
-  } while (!take_turn((left_input << 4) + right_input));
+  uint8_t input = 0;
+  while (get_input(LEFT_INPUT));            // await release
+  while (!(input = get_input(LEFT_INPUT))); // await left input
+  input <<= 4;                              // shift left input
+  input += get_input(RIGHT_INPUT);          // get right state
+  if (!take_turn(input)) return;            // only take valid turns
 
   draw_room();
   _delay_ms(100);
@@ -116,7 +108,6 @@ bool loop(bool held) {
     die();
 
   ++turn;
-  return held;
 }
 
 int main() {
@@ -134,6 +125,5 @@ int main() {
   add_entity(PLAYER, 1);
   add_entity(RAT, 30);
 
-  bool held = false;
-  for (;;) held = loop(held);
+  for (;;) loop();
 }
