@@ -90,12 +90,12 @@ void loop(entityId player) {
     // FOLLOW
     int8_t ex = entities[id].pos % WIDTH;
     int8_t ey = entities[id].pos / WIDTH;
-    int8_t dx = px - ex;
-    int8_t dy = py - ey;
-    move(id, sign(dx), sign(dy));
+    move(id, sign(px - ex), sign(py - ey));
 
     // ATTACK
-    if ((abs(dx) == 1 && ~dy) || (abs(dy) == 1 && ~dx))
+    int8_t dx = px - entities[id].pos % WIDTH;
+    int8_t dy = py - entities[id].pos / WIDTH;
+    if ((abs(dx) == 1 && !dy) || (abs(dy) == 1 && !dx))
       attack(id, dx, dy);
   }
   ++turn;
