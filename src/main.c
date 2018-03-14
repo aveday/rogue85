@@ -91,15 +91,27 @@ void take_turn(uint8_t input) {
   ++turn;
 }
 
-int loop() {
+bool loop(bool held) {
+  // RENDER
   draw_ui();
   draw_room();
 
-  uint8_t input;
-  while(!(input = get_input(LEFT_INPUT) << 4)) _delay_ms(10);
+  // HANDLE INPUT
+  uint8_t left_input, right_input;
+  for (;;) {
+    left_input = get_input(LEFT_INPUT);
+    if (!left_input) {
+      held = false;
+    } else if (!held) {
+      right_input = get_input(RIGHT_INPUT);
+      held = true;
+      break;
+    }
+    _delay_ms(10);
+  }
 
-  take_turn(input);
-  return 0;
+  take_turn((left_input << 4) + right_input);
+  return held;
 }
 
 int main() {
@@ -107,7 +119,7 @@ int main() {
   wdt_disable();
 
   init_graphics();
-  init_input(repeat = false);
+  init_input();
 
   // initialize entity and room arrays
   for (int i = 0; i < MAX_ENTITIES; ++i) {
@@ -125,5 +137,6 @@ int main() {
   for (int id = 1; id < MAX_ENTITIES; ++id)
     room[entities[id].pos] = id;
 
-  while(!loop()) continue;
+  bool held = false;
+  for (;;) held = loop(held);
 }

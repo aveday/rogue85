@@ -15,9 +15,6 @@
 #define X 1<<1
 #define Y 1<<0
 
-bool hold = false;
-bool repeat = false;
-
 /* n-button rollover
 uint8_t Vdefs[] = {
   255, 230, 209, 192, 178, 166, 156, 149,
@@ -26,8 +23,7 @@ uint8_t Vdefs[] = {
 */
 const uint8_t Vdefs[] = { 230, 209, 178, 142 };
 
-void init_input(bool r) {
-  repeat = r;
+void init_input() {
 
   ADCSRA |= (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // set ADC prescaler
   ADMUX |= (1 << ADLAR); // left adjust ADC result for 8 bit value
@@ -55,11 +51,6 @@ uint8_t get_input(uint8_t channel) {
     if (voltage < Vdefs[i] + INPUT_SENSITIVITY &&
         voltage > Vdefs[i] - INPUT_SENSITIVITY )
       input = 1 << i;
-
-  if (!repeat) {
-    if (input && hold) return 0;
-    hold = input;
-  }
 
   return input;
 }
