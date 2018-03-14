@@ -12,28 +12,34 @@ typedef uint8_t entityId;
 
 typedef struct {
   uint8_t pos;
+  uint8_t hp;
   uint8_t templateId;
 } entity_t;
 
 typedef struct {
   const sprite_t sprite;
+  const uint8_t max_hp;
 } template_t;
 
 entityId room[WIDTH*HEIGHT];
 entity_t entities[MAX_ENTITIES];
 
 const template_t templates[] PROGMEM = {
-  {EMPTY_S},
-  {PLAYER_S},
-  {SKELETON_S},
-  {RAT_S}
+  {EMPTY_S,   ~0},
+  {PLAYER_S,   10},
+  {SKELETON_S, 2},
+  {RAT_S,      1}
 };
 
 void add_entity(uint8_t templateId, uint8_t pos) {
   for (entityId id = 0; id < MAX_ENTITIES; ++id) {
     if (entities[id].templateId != INVALID) continue;
+
     entities[id].templateId = templateId;
     entities[id].pos = pos;
+    entities[id].hp = pgm_read_byte_near(
+        &templates[templateId].max_hp);
+
     break;
   };
 }

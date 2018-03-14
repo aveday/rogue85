@@ -14,10 +14,7 @@
 #include "debug.h"
 #endif
 
-#define MAX_HP 20
-
 uint8_t turn = 0;
-uint8_t hp = MAX_HP;
 
 void die() {
   wdt_enable(WDTO_2S);
@@ -27,11 +24,14 @@ void die() {
 void draw_ui() {
   ssd1306_setpos(0, 0);
   ssd1306_string_font6x8("HP");
-  draw_bar(MAX_HP, hp);
+  draw_bar( pgm_read_byte_near(
+    &templates[entities[PLAYER].templateId].max_hp
+  ), entities[PLAYER].hp);
 
   ssd1306_setpos(80, 1);
   ssd1306_string_font6x8("turn ");
   ssd1306_numdec_font6x8(turn);
+
 }
 
 void draw_room() {
@@ -40,7 +40,9 @@ void draw_room() {
   for (int i = 0; i < 8 * WIDTH * HEIGHT; ++i) {
     entity_t e = entities[room[i/8]];
     if (e.templateId == INVALID) continue;
-    uint8_t line = pgm_read_byte_near(templates[e.templateId].sprite + i%8);
+    uint8_t line = pgm_read_byte_near(
+        templates[e.templateId].sprite + i%8
+    );
     ssd1306_send_byte(line);
   }
   ssd1306_send_data_stop();
@@ -82,8 +84,9 @@ void take_turn(uint8_t input) {
     uint8_t diff = entities[PLAYER].pos > entities[id].pos
       ? entities[PLAYER].pos - entities[id].pos
       : entities[id].pos - entities[PLAYER].pos;
-    if (diff == 1 || diff == WIDTH || diff == HEIGHT) --hp;
-    if (!hp) die();
+    if (diff == 1 || diff == WIDTH || diff == HEIGHT)
+      entities[PLAYER].hp--;
+    if (!entities[PLAYER].hp) die();
   }
   ++turn;
 }
@@ -110,6 +113,7 @@ int main() {
   for (int i = 0; i < MAX_ENTITIES; ++i) {
     entities[i].templateId = INVALID;
     entities[i].pos = INVALID;
+    entities[i].hp = INVALID;
   }
   for (int i = 0; i < WIDTH*HEIGHT; ++i)
     room[i] = EMPTY;
