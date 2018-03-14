@@ -32,8 +32,8 @@ const template_t templates[] PROGMEM = {
 };
 
 //TODO
-bool is_enemy(entityId id) {
-  return id > PLAYER && id < INVALID;
+bool is_targetable(entityId id) {
+  return id > EMPTY && id < INVALID;
 }
 
 void add_entity(uint8_t templateId, uint8_t pos) {
@@ -74,7 +74,7 @@ bool move(entityId id, int8_t dx, int8_t dy) {
 
 bool attack(entityId id, int8_t dx, int8_t dy) {
   entityId target = query_adjacent(id, dx, dy);
-  if (!is_enemy(target))
+  if (!is_targetable(target))
     return false;
 
   entities[target].hp--;

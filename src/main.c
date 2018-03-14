@@ -102,18 +102,18 @@ bool loop(bool held) {
     // FOLLOW
     int8_t ex = entities[id].pos % WIDTH;
     int8_t ey = entities[id].pos / WIDTH;
-    int8_t dx = sign(px - ex);
-    int8_t dy = sign(py - ey);
-    move(id, dx, dy);
+    int8_t dx = px - ex;
+    int8_t dy = py - ey;
+    move(id, sign(dx), sign(dy));
 
     // ATTACK
-    uint8_t diff = entities[PLAYER].pos > entities[id].pos
-      ? entities[PLAYER].pos - entities[id].pos
-      : entities[id].pos - entities[PLAYER].pos;
-    if (diff == 1 || diff == WIDTH || diff == HEIGHT)
-      entities[PLAYER].hp--;
-    if (!entities[PLAYER].hp) die();
+    if ((abs(dx) == 1 && ~dy) || (abs(dy) == 1 && ~dx))
+      attack(id, dx, dy);
   }
+
+  // CHECK DEATH
+  if (entities[PLAYER].templateId != PLAYER)
+    die();
 
   ++turn;
   return held;
