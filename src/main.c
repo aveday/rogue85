@@ -49,6 +49,10 @@ void loop(entityId player) {
     if (entities[id].templateId != EMPTY &&
         entities[id].templateId != INVALID)
       ((void(*)())(pgm_read_ptr_near(&(TEMPLATE(id).behaviour))))(id);
+    if (id == player) {
+      draw_room(player);
+      _delay_ms(50);
+    }
   }
 
   ++turn;
