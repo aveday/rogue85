@@ -54,41 +54,10 @@ int8_t sign(int8_t a) {
   return 0;
 }
 
-void take_turn(uint8_t input) {
-  int8_t ix = (bool)(input & RIGHT) - (bool)(input & LEFT);
-  int8_t iy = (bool)(input & DOWN) - (bool)(input & UP);
-
-  if (query_adjacent(PLAYER, ix, iy) == EMPTY)
-    move(PLAYER, ix, iy);
-  else
-    return;
-
-  int8_t px = entities[PLAYER].pos % WIDTH;
-  int8_t py = entities[PLAYER].pos / WIDTH;
-
-  draw_room();
-  _delay_ms(100);
-
-  for (uint8_t id = PLAYER+1; id < MAX_ENTITIES; ++id) {
-    if (entities[id].templateId == EMPTY ||
-        entities[id].templateId == INVALID) continue;
-    // FOLLOW
-    int8_t ex = entities[id].pos % WIDTH;
-    int8_t ey = entities[id].pos / WIDTH;
-    int8_t dx = sign(px - ex);
-    int8_t dy = sign(py - ey);
-    if (query_adjacent(id, dx, dy) == EMPTY)
-      move(id, dx, dy);
-
-    // ATTACK
-    uint8_t diff = entities[PLAYER].pos > entities[id].pos
-      ? entities[PLAYER].pos - entities[id].pos
-      : entities[id].pos - entities[PLAYER].pos;
-    if (diff == 1 || diff == WIDTH || diff == HEIGHT)
-      entities[PLAYER].hp--;
-    if (!entities[PLAYER].hp) die();
-  }
-  ++turn;
+bool take_turn(uint8_t input) {
+  int8_t dx = (bool)(input & RIGHT) - (bool)(input & LEFT);
+  int8_t dy = (bool)(input & DOWN) - (bool)(input & UP);
+  return move(PLAYER, dx, dy);
 }
 
 bool loop(bool held) {
@@ -98,19 +67,47 @@ bool loop(bool held) {
 
   // HANDLE INPUT
   uint8_t left_input, right_input;
-  for (;;) {
-    left_input = get_input(LEFT_INPUT);
-    if (!left_input) {
-      held = false;
-    } else if (!held) {
-      right_input = get_input(RIGHT_INPUT);
-      held = true;
-      break;
+  do {
+    for (;;) {
+      left_input = get_input(LEFT_INPUT);
+      if (!left_input) {
+        held = false;
+      } else if (!held) {
+        right_input = get_input(RIGHT_INPUT);
+        held = true;
+        break;
+      }
+      _delay_ms(10);
     }
-    _delay_ms(10);
+  } while (!take_turn((left_input << 4) + right_input));
+
+  draw_room();
+  _delay_ms(100);
+
+  // MOVE NPCs
+  int8_t px = entities[PLAYER].pos % WIDTH;
+  int8_t py = entities[PLAYER].pos / WIDTH;
+
+  for (uint8_t id = PLAYER+1; id < MAX_ENTITIES; ++id) {
+    if (entities[id].templateId == EMPTY ||
+        entities[id].templateId == INVALID) continue;
+    // FOLLOW
+    int8_t ex = entities[id].pos % WIDTH;
+    int8_t ey = entities[id].pos / WIDTH;
+    int8_t dx = sign(px - ex);
+    int8_t dy = sign(py - ey);
+    move(id, dx, dy);
+
+    // ATTACK
+    uint8_t diff = entities[PLAYER].pos > entities[id].pos
+      ? entities[PLAYER].pos - entities[id].pos
+      : entities[id].pos - entities[PLAYER].pos;
+    if (diff == 1 || diff == WIDTH || diff == HEIGHT)
+      entities[PLAYER].hp--;
+    if (!entities[PLAYER].hp) die();
   }
 
-  take_turn((left_input << 4) + right_input);
+  ++turn;
   return held;
 }
 

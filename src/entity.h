@@ -44,14 +44,17 @@ void add_entity(uint8_t templateId, uint8_t pos) {
   };
 }
 
-void move(entityId id, int8_t dx, int8_t dy) {
-  room[entities[id].pos] = EMPTY;
-  entities[id].pos += dx + WIDTH * dy;
-  room[entities[id].pos] = id;
-}
-
 entityId query_adjacent(entityId id, int8_t dx, int8_t dy) {
   uint8_t adj_pos = entities[id].pos + dx + WIDTH * dy;
   uint8_t adj_row = entities[id].pos / WIDTH + dy;
   return (adj_pos / WIDTH != adj_row) ? INVALID : room[adj_pos];
+}
+
+bool move(entityId id, int8_t dx, int8_t dy) {
+  if (query_adjacent(id, dx, dy) != EMPTY)
+    return false;
+  room[entities[id].pos] = EMPTY;
+  entities[id].pos += dx + WIDTH * dy;
+  room[entities[id].pos] = id;
+  return true;
 }
