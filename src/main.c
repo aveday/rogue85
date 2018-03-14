@@ -16,7 +16,7 @@
 
 #define MAX_HP 20
 
-uint8_t count = 0;
+uint8_t turn = 0;
 uint8_t hp = MAX_HP;
 
 void die() {
@@ -31,7 +31,7 @@ void draw_ui() {
 
   ssd1306_setpos(80, 1);
   ssd1306_string_font6x8("turn ");
-  ssd1306_numdec_font6x8(count++);
+  ssd1306_numdec_font6x8(turn);
 }
 
 void draw_room() {
@@ -58,6 +58,8 @@ void take_turn(uint8_t input) {
 
   if (query_adjacent(PLAYER, ix, iy) == EMPTY)
     move(PLAYER, ix, iy);
+  else
+    return;
 
   int8_t px = entities[PLAYER].pos % WIDTH;
   int8_t py = entities[PLAYER].pos / WIDTH;
@@ -83,6 +85,7 @@ void take_turn(uint8_t input) {
     if (diff == 1 || diff == WIDTH || diff == HEIGHT) --hp;
     if (!hp) die();
   }
+  ++turn;
 }
 
 int loop() {
