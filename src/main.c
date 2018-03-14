@@ -26,7 +26,6 @@ void draw_ui(entityId id) {
   ssd1306_setpos(80, 1);
   ssd1306_string_font6x8("turn ");
   ssd1306_numdec_font6x8(turn);
-
 }
 
 void draw_room() {
@@ -41,61 +40,17 @@ void draw_room() {
   ssd1306_send_data_stop();
 }
 
-int8_t sign(int8_t a) {
-  if (a > 0) return 1;
-  if (a < 0) return -1;
-  return 0;
-}
-
-bool take_turn(entityId id, uint8_t input) {
-  int8_t dx = input & LEFT ? -1 : input & RIGHT ? 1 : 0;
-  int8_t dy = input & UP ? -1 : input & DOWN ? 1 : 0;
-
-  switch(input & 0b1111) {
-    case 0: return move(id, dx, dy);
-    case A: return attack(id, dx, dy);
-    case B: return false;
-    case X: return false;
-    case Y: return false;
-  }
-  return false;
-}
-
 void loop(entityId player) {
   // RENDER
   draw_ui(player);
   draw_room();
 
-  // HANDLE INPUT
-  uint8_t input = 0;
-  while (get_input(LEFT_INPUT));            // await release
-  while (!(input = get_input(LEFT_INPUT))); // await left input
-  input <<= 4;                              // shift left input
-  input += get_input(RIGHT_INPUT);          // get right state
-  if (!take_turn(player, input)) return;    // only take valid turns
-
-  draw_room();
-  _delay_ms(100);
-
-  // MOVE NPCs
-  int8_t px = entities[player].pos % WIDTH;
-  int8_t py = entities[player].pos / WIDTH;
-
   for (uint8_t id = 0; id < MAX_ENTITIES; ++id) {
-    if (entities[id].templateId == EMPTY ||
-        entities[id].templateId == PLAYER || //FIXME
-        entities[id].templateId == INVALID) continue;
-    // FOLLOW
-    int8_t ex = entities[id].pos % WIDTH;
-    int8_t ey = entities[id].pos / WIDTH;
-    move(id, sign(px - ex), sign(py - ey));
-
-    // ATTACK
-    int8_t dx = px - entities[id].pos % WIDTH;
-    int8_t dy = py - entities[id].pos / WIDTH;
-    if ((abs(dx) == 1 && !dy) || (abs(dy) == 1 && !dx))
-      attack(id, dx, dy);
+    if (entities[id].templateId != EMPTY &&
+        entities[id].templateId != INVALID)
+      ((void(*)())(pgm_read_ptr_near(&(TEMPLATE(id).behaviour))))(id);
   }
+
   ++turn;
 }
 
