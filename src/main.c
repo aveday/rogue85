@@ -34,11 +34,9 @@ void draw_room() {
   ssd1306_send_data_start();
   for (int i = 0; i < 8 * WIDTH * HEIGHT; ++i) {
     entity_t e = entities[room[i/8]];
-    if (e.templateId == INVALID) continue;
-    uint8_t line = pgm_read_byte_near(
+    ssd1306_send_byte(pgm_read_byte_near(
         templates[e.templateId].sprite + i%8
-    );
-    ssd1306_send_byte(line);
+    ));
   }
   ssd1306_send_data_stop();
 }
