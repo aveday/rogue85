@@ -1,5 +1,6 @@
 #include "config.h"
 #include "graphics.h"
+#include "sprites.h"
 
 #define EMPTY 0
 #define PLAYER 1
@@ -15,17 +16,17 @@ typedef struct {
 } entity_t;
 
 typedef struct {
-  const sprite_t* sprite;
+  const sprite_t sprite;
 } template_t;
 
 entityId room[WIDTH*HEIGHT];
 entity_t entities[MAX_ENTITIES];
 
-const template_t templates[] = {
-  {&empty_s},
-  {&player_s},
-  {&skeleton_s},
-  {&rat_s}
+const template_t templates[] PROGMEM = {
+  {EMPTY_S},
+  {PLAYER_S},
+  {SKELETON_S},
+  {RAT_S}
 };
 
 void add_entity(uint8_t templateId, uint8_t pos) {
