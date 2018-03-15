@@ -11,7 +11,13 @@
 #define RAT 3
 #define INVALID 255
 
+// TEMPLATE FLAGS
+#define VACANT  1 << 0
+#define TARGET  1 << 1
+
 #define TEMPLATE(id) templates[entities[id].templateId]
+#define FIELD(type, id, field) (pgm_read_ ## type ## _near(&(TEMPLATE(id).field)))
+#define FLAG(id, flag) (FIELD(byte, id, flags) & flag)
 
 typedef uint8_t entityId;
 
@@ -24,6 +30,7 @@ typedef struct {
 typedef struct {
   const sprite_t sprite;
   const uint8_t max_hp;
+  const uint8_t flags;
   void (*behaviour)(entityId);
 } template_t;
 
@@ -34,16 +41,13 @@ void basic_ai(entityId id);
 void player_control(entityId id);
 
 const template_t templates[] PROGMEM = {
-  {EMPTY_S,   ~0, NULL},
-  {PLAYER_S,  10, player_control},
-  {SKELETON_S, 2, basic_ai},
-  {RAT_S,      1, basic_ai}
-};
+  {EMPTY_S,   ~0,      VACANT, NULL},
+  {BRICK_S,   ~0,           0, NULL},
 
-//TODO
-bool is_targetable(entityId id) {
-  return id > EMPTY && id < INVALID;
-}
+  {PLAYER_S,  10,      TARGET, player_control},
+  {SKELETON_S, 2,      TARGET, basic_ai},
+  {RAT_S,      1,      TARGET, basic_ai},
+};
 
 entityId add_entity(uint8_t templateId, uint8_t pos) {
   for (entityId id = 0; id < MAX_ENTITIES; ++id) {
@@ -67,15 +71,23 @@ void remove_entity(entityId id) {
   entities[id].hp = INVALID;
 }
 
-entityId query_adjacent(entityId id, int8_t dx, int8_t dy) {
+bool in_bounds(entityId id, int8_t dx, int8_t dy) {
   uint8_t adj_pos = entities[id].pos + dx + WIDTH * dy;
   uint8_t adj_row = entities[id].pos / WIDTH + dy;
-  return (adj_pos / WIDTH != adj_row) ? INVALID : room[adj_pos];
+  return (adj_pos / WIDTH == adj_row && adj_row < HEIGHT);
+}
+
+entityId relative(entityId id, int8_t dx, int8_t dy) {
+  return room[entities[id].pos + dx + WIDTH * dy];
 }
 
 bool move(entityId id, int8_t dx, int8_t dy) {
-  if (query_adjacent(id, dx, dy) != EMPTY)
+  // check if in bounds and vacant
+  if (!in_bounds(id, dx, dy) ||
+      !FLAG(relative(id, dx, dy), VACANT))
     return false;
+
+  // move
   room[entities[id].pos] = EMPTY;
   entities[id].pos += dx + WIDTH * dy;
   room[entities[id].pos] = id;
@@ -83,8 +95,11 @@ bool move(entityId id, int8_t dx, int8_t dy) {
 }
 
 bool attack(entityId id, int8_t dx, int8_t dy) {
-  entityId target = query_adjacent(id, dx, dy);
-  if (!is_targetable(target))
+  if (!in_bounds(id, dx, dy))
+      return false;
+
+  entityId target = relative(id, dx, dy);
+  if (!FLAG(target, TARGET))
     return false;
 
   entities[target].hp--;

@@ -32,9 +32,8 @@ void draw_room() {
   ssd1306_setpos(0, 2);
   ssd1306_send_data_start();
   for (int i = 0; i < 8 * WIDTH * HEIGHT; ++i) {
-    entity_t e = entities[room[i/8]];
     ssd1306_send_byte(pgm_read_byte_near(
-        templates[e.templateId].sprite + i%8
+        TEMPLATE(room[i/8]).sprite + i%8
     ));
   }
   ssd1306_send_data_stop();
@@ -48,7 +47,7 @@ void loop(entityId player) {
   for (uint8_t id = 0; id < MAX_ENTITIES; ++id) {
     if (entities[id].templateId != EMPTY &&
         entities[id].templateId != INVALID)
-      ((void(*)())(pgm_read_ptr_near(&(TEMPLATE(id).behaviour))))(id);
+      ((void(*)())FIELD(ptr, id, behaviour))(id);
     if (id == player) {
       draw_room(player);
       _delay_ms(50);
