@@ -5,15 +5,10 @@
 #include "graphics.h"
 #include "sprites.h"
 
-#define EMPTY 0
-#define PLAYER 1
-#define SKELETON 2
-#define RAT 3
-#define INVALID 255
-
 // TEMPLATE FLAGS
-#define VACANT  1 << 0
-#define TARGET  1 << 1
+#define PLAYER  1 << 1
+#define MONSTER 1 << 2
+#define TARGET  1 << 3
 
 #define TEMPLATE(id) templates[entities[id].templateId]
 #define FIELD(type, id, field) (pgm_read_ ## type ## _near(&(TEMPLATE(id).field)))
@@ -41,34 +36,33 @@ void basic_ai(entityId id);
 void player_control(entityId id);
 
 const template_t templates[] PROGMEM = {
-  {EMPTY_S,   ~0,      VACANT, NULL},
-  {BRICK_S,   ~0,           0, NULL},
+  {BRICK_S,   ~0,              0, NULL},
 
-  {PLAYER_S,  10,      TARGET, player_control},
-  {SKELETON_S, 2,      TARGET, basic_ai},
-  {RAT_S,      1,      TARGET, basic_ai},
+  {PLAYER_S,  10,  PLAYER|TARGET, player_control},
+  {SKELETON_S, 2, MONSTER|TARGET, basic_ai},
+  {RAT_S,      1, MONSTER|TARGET, basic_ai},
+
+  {SWORD_S,   20,              0, NULL}
 };
 
+uint8_t find_template(uint8_t flags) {
+  uint8_t id = 0;
+  while ( ~(~flags | pgm_read_byte_near(&templates[id].flags)) ) ++id;
+  return id;
+}
+
 entityId add_entity(uint8_t templateId, uint8_t pos) {
-  for (entityId id = 0; id < MAX_ENTITIES; ++id) {
-    if (entities[id].templateId != INVALID) continue;
-
-    entities[id].templateId = templateId;
-    entities[id].pos = pos;
-    entities[id].hp = pgm_read_byte_near(
-        &templates[templateId].max_hp);
-
-    room[pos] = id;
-    return id;
-  }
-  return INVALID;
+  entityId id = 1;
+  while (entities[id].hp) ++id;
+  entities[id].templateId = templateId;
+  entities[id].pos = pos;
+  entities[id].hp = FIELD(byte, id, max_hp);
+  return room[pos] = id;
 }
 
 void remove_entity(entityId id) {
-  room[entities[id].pos] = EMPTY;
-  entities[id].templateId = INVALID;
-  entities[id].pos = INVALID;
-  entities[id].hp = INVALID;
+  room[entities[id].pos] = 0;
+  entities[id].hp = 0;
 }
 
 bool in_bounds(entityId id, int8_t dx, int8_t dy) {
@@ -82,13 +76,12 @@ entityId relative(entityId id, int8_t dx, int8_t dy) {
 }
 
 bool move(entityId id, int8_t dx, int8_t dy) {
-  // check if in bounds and vacant
-  if (!in_bounds(id, dx, dy) ||
-      !FLAG(relative(id, dx, dy), VACANT))
+  // check if out of bounds or occupied
+  if (!in_bounds(id, dx, dy) || relative(id, dx, dy))
     return false;
 
   // move
-  room[entities[id].pos] = EMPTY;
+  room[entities[id].pos] = 0;
   entities[id].pos += dx + WIDTH * dy;
   room[entities[id].pos] = id;
   return true;

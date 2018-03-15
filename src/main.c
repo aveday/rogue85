@@ -31,10 +31,14 @@ void draw_ui(entityId id) {
 void draw_room() {
   ssd1306_setpos(0, 2);
   ssd1306_send_data_start();
-  for (int i = 0; i < 8 * WIDTH * HEIGHT; ++i) {
-    ssd1306_send_byte(pgm_read_byte_near(
-        TEMPLATE(room[i/8]).sprite + i%8
-    ));
+  for (uint8_t pos = 0; pos < WIDTH * HEIGHT; ++pos) {
+    for (uint8_t b = 0; b < 8; ++b)
+      if (!room[pos])
+        ssd1306_send_byte(0);
+      else
+        ssd1306_send_byte(pgm_read_byte_near(
+            TEMPLATE(room[pos]).sprite + b
+        ));
   }
   ssd1306_send_data_stop();
 }
@@ -45,9 +49,11 @@ void loop(entityId player) {
   draw_room();
 
   for (uint8_t id = 0; id < MAX_ENTITIES; ++id) {
-    if (entities[id].templateId != EMPTY &&
-        entities[id].templateId != INVALID)
-      ((void(*)())FIELD(ptr, id, behaviour))(id);
+    if (!entities[id].hp) continue;
+
+    void (*behaviour)(entityId) = FIELD(ptr, id, behaviour);
+    if (behaviour) behaviour(id);
+
     if (id == player) {
       draw_room(player);
       _delay_ms(50);
@@ -66,13 +72,12 @@ int main() {
 
   // initialize entity and room arrays
   for (int i = 0; i < MAX_ENTITIES; ++i) remove_entity(i);
-  for (int i = 0; i < WIDTH*HEIGHT; ++i) room[i] = EMPTY;
+  for (int i = 0; i < WIDTH*HEIGHT; ++i) room[i] = 0;
 
-  add_entity(EMPTY, INVALID);
-  entityId player = add_entity(PLAYER, 1);
-  add_entity(RAT, 30);
+  entityId player = add_entity(find_template(PLAYER), 1);
+  add_entity(find_template(MONSTER), 30);
 
-  while (entities[player].templateId == PLAYER)
+  while (entities[player].hp) //FIXME
     loop(player);
 
   wdt_enable(WDTO_2S);
