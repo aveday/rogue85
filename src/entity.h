@@ -9,6 +9,8 @@
 #define PLAYER  1 << 1
 #define MONSTER 1 << 2
 #define TARGET  1 << 3
+#define TERRAIN 1 << 4
+#define ITEM    1 << 5
 
 #define TEMPLATE(id) templates[entities[id].templateId]
 #define FIELD(type, id, field) (pgm_read_ ## type ## _near(&(TEMPLATE(id).field)))
@@ -29,20 +31,20 @@ typedef struct {
   void (*behaviour)(entityId);
 } template_t;
 
-entityId room[WIDTH*HEIGHT];
+entityId level[WIDTH*HEIGHT];
 entity_t entities[MAX_ENTITIES];
 
 void basic_ai(entityId id);
 void player_control(entityId id);
 
 const template_t templates[] PROGMEM = {
-  {BRICK_S,   ~0,              0, NULL},
+  {BRICK_S,   ~0,        TERRAIN, NULL},
 
   {PLAYER_S,  10,  PLAYER|TARGET, player_control},
   {SKELETON_S, 2, MONSTER|TARGET, basic_ai},
   {RAT_S,      1, MONSTER|TARGET, basic_ai},
 
-  {SWORD_S,   20,              0, NULL}
+  {SWORD_S,   20,           ITEM, NULL}
 };
 
 uint8_t find_template(uint8_t flags) {
@@ -53,15 +55,17 @@ uint8_t find_template(uint8_t flags) {
 
 entityId add_entity(uint8_t templateId, uint8_t pos) {
   entityId id = 1;
-  while (entities[id].hp) ++id;
+  while (id < MAX_ENTITIES && entities[id].hp) ++id;
+  if (id == MAX_ENTITIES)
+    return 0;
   entities[id].templateId = templateId;
   entities[id].pos = pos;
   entities[id].hp = FIELD(byte, id, max_hp);
-  return room[pos] = id;
+  return level[pos] = id;
 }
 
 void remove_entity(entityId id) {
-  room[entities[id].pos] = 0;
+  level[entities[id].pos] = 0;
   entities[id].hp = 0;
 }
 
@@ -72,7 +76,7 @@ bool in_bounds(entityId id, int8_t dx, int8_t dy) {
 }
 
 entityId relative(entityId id, int8_t dx, int8_t dy) {
-  return room[entities[id].pos + dx + WIDTH * dy];
+  return level[entities[id].pos + dx + WIDTH * dy];
 }
 
 bool move(entityId id, int8_t dx, int8_t dy) {
@@ -81,9 +85,9 @@ bool move(entityId id, int8_t dx, int8_t dy) {
     return false;
 
   // move
-  room[entities[id].pos] = 0;
+  level[entities[id].pos] = 0;
   entities[id].pos += dx + WIDTH * dy;
-  room[entities[id].pos] = id;
+  level[entities[id].pos] = id;
   return true;
 }
 
