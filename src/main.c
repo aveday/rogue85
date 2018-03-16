@@ -61,7 +61,8 @@ void loop(entityId player) {
   ++turn;
 }
 
-#define MIN 2
+#define MIN_X 2
+#define MIN_Y 1
 
 typedef struct {
   uint8_t corner1;
@@ -87,8 +88,8 @@ bool split_room(room_t rooms[]) {
 
     uint8_t width = room.corner2 % WIDTH - room.corner1 % WIDTH + 1;
     uint8_t height= room.corner2 / WIDTH - room.corner1 / WIDTH + 1;
-    bool too_narrow = width < MIN*2 + 1;
-    bool too_short  = height < MIN*2 + 1;
+    bool too_narrow = width < MIN_X*2 + 1;
+    bool too_short  = height < MIN_Y*2 + 1;
 
     if (too_narrow && too_short)
       continue;
@@ -99,8 +100,8 @@ bool split_room(room_t rooms[]) {
     c12 = v ? room.corner2 % WIDTH : room.corner2 / WIDTH;
     c22 = v ? room.corner2 / WIDTH : room.corner2 % WIDTH;
     cp  = v ? cxy : cyx;
-
-    split = c11 + MIN + rand() % (c12 - c11 + 1 - 2*MIN);
+    uint8_t min = v ? MIN_X : MIN_Y;
+    split = c11 + min + rand() % (c12 - c11 + 1 - 2*min);
 
     // check if new wall would block an existing door
     bool blocking = false;
