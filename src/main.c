@@ -63,66 +63,102 @@ void loop(entityId player) {
 
 #define MIN 2
 
-uint8_t cx(uint8_t p) { return p % WIDTH; }
-uint8_t cy(uint8_t p) { return p / WIDTH; }
+typedef struct {
+  uint8_t corner1;
+  uint8_t corner2;
+} room_t;
+
 uint8_t cxy(uint8_t x, uint8_t y) { return WIDTH * y + x; }
 uint8_t cyx(uint8_t y, uint8_t x) { return WIDTH * y + x; }
 
-void split_room(uint8_t p1, uint8_t p2) {
+bool split_room(room_t rooms[]) {
+  
+  uint8_t id;
+  uint8_t c11, c12, c21, c22;
+  uint8_t (*cp)(uint8_t, uint8_t);
+  uint8_t split;
 
-  uint8_t width = cx(p2) - cx(p1) + 1;
-  uint8_t height= cy(p2) - cy(p1) + 1;
-  bool too_narrow = width < MIN*2 + 1;
-  bool too_short  = height < MIN*2 + 1;
+  // pick which room to split
+  for (id = 0; id < MAX_ROOMS; ++id) {
+    room_t room = rooms[id];
 
-  if (too_narrow && too_short)
-    return;
+    if (room.corner1 > room.corner2)
+      continue;
 
-  // vertical split
-  uint8_t (*c1)(uint8_t) = cx;
-  uint8_t (*c2)(uint8_t) = cy;
-  uint8_t (*cp)(uint8_t, uint8_t) = cxy;
-  bool v = too_short || (rand() % (width + height) < width && !too_narrow);
-  if (!v) {
-    // horizontal split
-    c1 = cy;
-    c2 = cx;
-    cp = cyx;
+    uint8_t width = room.corner2 % WIDTH - room.corner1 % WIDTH + 1;
+    uint8_t height= room.corner2 / WIDTH - room.corner1 / WIDTH + 1;
+    bool too_narrow = width < MIN*2 + 1;
+    bool too_short  = height < MIN*2 + 1;
+
+    if (too_narrow && too_short)
+      continue;
+
+    bool v = too_short || (rand() % (width + height) < width && !too_narrow);
+    if (v) {
+      // vertical split
+      c11 = room.corner1 % WIDTH;
+      c21 = room.corner1 / WIDTH;
+      c12 = room.corner2 % WIDTH;
+      c22 = room.corner2 / WIDTH;
+      cp = cxy;
+    } else {
+      // horizontal split
+      c11 = room.corner1 / WIDTH;
+      c21 = room.corner1 % WIDTH;
+      c12 = room.corner2 / WIDTH;
+      c22 = room.corner2 % WIDTH;
+      cp = cyx;
+    }
+
+    split = c11 + MIN + rand() % (c12 - c11 + 1 - 2*MIN);
+
+    // check if new wall would block an existing door
+    bool blocking = false;
+    for (int8_t d = -1; d <= 1; d += 2)
+      if (in_bounds(cp(split, d<0?c21:c22), v?0:d, v?d:0) &&
+          FLAG(level[cp(split, (d<0?c21:c22) + d)], DOOR))
+        blocking = true;
+
+    if (blocking)
+      continue;
+    break;
   }
+  if (id == MAX_ROOMS)
+    return false;
 
-  uint8_t split = c1(p1) + MIN + rand() % (c1(p2) - c1(p1) + 1 - 2*MIN);
+  uint8_t next = 0;
+  while (next < MAX_ROOMS && rooms[next].corner1 <= rooms[next].corner2)
+    ++next;
+  if (next == MAX_ROOMS)
+    return false;
 
-  // check if new wall would block an existing door
-  for (int8_t d = -1; d <= 1; d += 2)
-    if (in_bounds(cp(split, c2(d<0?p1:p2)), v?0:d, v?d:0) &&
-        FLAG(level[cp(split, c2(d<0?p1:p2) + d)], DOOR))
-    return;
+  rooms[next].corner2 = rooms[id].corner2;
+  rooms[next].corner1 = cp(split + 1, c21);
+  rooms[id].corner2   = cp(split - 1, c22);
 
-  uint8_t door = c2(p1) + rand() % (c2(p2) - c2(p1) + 1);
+  uint8_t door = c21 + rand() % (c22 - c21 + 1);
 
-  for (uint8_t n = c2(p1); n <= c2(p2); ++n) {
+  for (uint8_t n = c21; n <= c22; ++n) {
     add_entity(find_template(door == n ? DOOR : WALL), cp(split, n));
   }
 
-  /*
-  sprite_t block = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
-  //debug(v ? "V" : "H", split);
-  while(!get_input(RIGHT_INPUT)) continue;
-  while(get_input(RIGHT_INPUT)) continue;
-  for (uint8_t n = c2(p1); n <= c2(p2); ++n)
-    draw_sprite(block, cx(cp(split, n)), cy(cp(split, n)) + 2);
-    */
-
-  split_room(p1, cp(split-1, c2(p2)));
-  split_room(cp(split+1, c2(p1)), p2);
+  return true;
 }
 
 void build_level() {
-
   for (int i = 0; i < WIDTH*HEIGHT; ++i)
     level[i] = 0;
+  
+  room_t rooms[MAX_ROOMS];
+  for (int i = 0; i < MAX_ROOMS; ++i) {
+    // rooms unused if corner1 > corner2
+    rooms[i].corner1 = cxy(WIDTH - 1, HEIGHT - 1);
+    rooms[i].corner2 = 0;
+  }
 
-  split_room(0, cxy(WIDTH - 1, HEIGHT - 1));
+  rooms[0].corner1 = 0;
+  rooms[0].corner2 = cxy(WIDTH - 1, HEIGHT - 1);
+  while (split_room(rooms)) continue;
 
   // add player
   add_entity(find_template(PLAYER), 0);
