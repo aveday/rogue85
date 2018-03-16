@@ -3,8 +3,8 @@
 #ifndef INPUT_H
 #define INPUT_H
 
-#define SAMPLES 20
-#define INPUT_SENSITIVITY 8
+#define SAMPLES 12
+#define INPUT_SENSITIVITY 9
 
 #define UP 1<<4
 #define DOWN 1<<7

@@ -1,3 +1,6 @@
+#ifndef DEBUG_H
+#define DEBUG_H
+
 #include "input.h"
 
 uint8_t pressed_s[] = {
@@ -46,34 +49,10 @@ void draw_load(int dt) {
   ssd1306_numdecp_font6x8(load);
 }
 
-void analyse_input() {
-  uint8_t voltage = read_adc(LEFT_INPUT);
-  if (voltage < 250) {
-    if (!hold) {
-      for (uint8_t i = 0; i < 8; ++i) {
-        ssd1306_setpos(48, i);
-        ssd1306_string_font6x8("          ");
-      }
-    }
-    hold = true;
-    hold_count++;
-    if (voltage < hold_voltage) {
-      hold_voltage = voltage;
-      ssd1306_setpos(68, row);
-      ssd1306_numdecp_font6x8(hold_count);
-      ssd1306_setpos(48, row++);
-      ssd1306_numdecp_font6x8(hold_voltage);
-    }
-  } else {
-    if (hold) {
-      ssd1306_setpos(72, row);
-      ssd1306_numdecp_font6x8(hold_count);
-      ssd1306_setpos(52, row++);
-      ssd1306_numdecp_font6x8(hold_voltage);
-    }
-    hold = false;
-    hold_voltage = 255;
-    hold_count = 0;
-    row = 0;
-  }
+void debug(char* s, uint8_t i) {
+  ssd1306_setpos(60, 0);
+  ssd1306_string_font6x8(s);
+  ssd1306_numdecp_font6x8(i);
 }
+
+#endif

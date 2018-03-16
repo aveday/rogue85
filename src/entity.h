@@ -4,13 +4,15 @@
 #include "config.h"
 #include "graphics.h"
 #include "sprites.h"
+#include "debug.h"
 
 // TEMPLATE FLAGS
 #define PLAYER  1 << 1
 #define MONSTER 1 << 2
 #define TARGET  1 << 3
-#define TERRAIN 1 << 4
+#define WALL    1 << 4
 #define ITEM    1 << 5
+#define DOOR    1 << 6
 
 #define TEMPLATE(id) templates[entities[id].templateId]
 #define FIELD(type, id, field) (pgm_read_ ## type ## _near(&(TEMPLATE(id).field)))
@@ -38,18 +40,25 @@ void basic_ai(entityId id);
 void player_control(entityId id);
 
 const template_t templates[] PROGMEM = {
-  {BRICK_S,   ~0,        TERRAIN, NULL},
+  {BRICK_S,   ~0,                 WALL, NULL},
+  {DOOR_S,     1,          DOOR|TARGET, NULL},
 
-  {PLAYER_S,  10,  PLAYER|TARGET, player_control},
-  {SKELETON_S, 2, MONSTER|TARGET, basic_ai},
-  {RAT_S,      1, MONSTER|TARGET, basic_ai},
+  {PLAYER_S,  10,        PLAYER|TARGET, player_control},
+  {SKELETON_S, 2,       MONSTER|TARGET, basic_ai},
+  {RAT_S,      1,       MONSTER|TARGET, basic_ai},
 
-  {SWORD_S,   20,           ITEM, NULL}
+  {SWORD_S,   20,                 ITEM, NULL}
 };
 
-uint8_t find_template(uint8_t flags) {
+uint8_t find_template(uint8_t flag) {
   uint8_t id = 0;
-  while ( ~(~flags | pgm_read_byte_near(&templates[id].flags)) ) ++id;
+  while ( !(flag & pgm_read_byte_near(&templates[id].flags)) ) ++id;
+  return id;
+}
+
+entityId find_entity(uint8_t flag) {
+  uint8_t id = 0;
+  while ( !entities[id].hp || !FLAG(id, flag) ) ++id;
   return id;
 }
 
@@ -69,9 +78,9 @@ void remove_entity(entityId id) {
   entities[id].hp = 0;
 }
 
-bool in_bounds(entityId id, int8_t dx, int8_t dy) {
-  uint8_t adj_pos = entities[id].pos + dx + WIDTH * dy;
-  uint8_t adj_row = entities[id].pos / WIDTH + dy;
+bool in_bounds(uint8_t pos, int8_t dx, int8_t dy) {
+  uint8_t adj_pos = pos + dx + WIDTH * dy;
+  uint8_t adj_row = pos / WIDTH + dy;
   return (adj_pos / WIDTH == adj_row && adj_row < HEIGHT);
 }
 
@@ -81,7 +90,7 @@ entityId relative(entityId id, int8_t dx, int8_t dy) {
 
 bool move(entityId id, int8_t dx, int8_t dy) {
   // check if out of bounds or occupied
-  if (!in_bounds(id, dx, dy) || relative(id, dx, dy))
+  if (!in_bounds(entities[id].pos, dx, dy) || relative(id, dx, dy))
     return false;
 
   // move
@@ -92,7 +101,7 @@ bool move(entityId id, int8_t dx, int8_t dy) {
 }
 
 bool attack(entityId id, int8_t dx, int8_t dy) {
-  if (!in_bounds(id, dx, dy))
+  if (!in_bounds(entities[id].pos, dx, dy))
       return false;
 
   entityId target = relative(id, dx, dy);
@@ -113,7 +122,8 @@ int8_t sign(int8_t a) {
 }
 
 void basic_ai(entityId id) {
-  entityId player = 1; // FIXME
+  //entityId player = 1; // FIXME
+  entityId player = find_entity(PLAYER);
 
   // FOLLOW
   int8_t px = entities[player].pos % WIDTH;
