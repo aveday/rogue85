@@ -31,13 +31,20 @@ void draw_level() {
   ssd1306_setpos(0, 2);
   ssd1306_send_data_start();
   for (uint8_t pos = 0; pos < WIDTH * HEIGHT; ++pos) {
-    for (uint8_t b = 0; b < 8; ++b)
-      if (!level[pos])
-        ssd1306_send_byte(0);
-      else
-        ssd1306_send_byte(pgm_read_byte_near(
-            TEMPLATE(level[pos]).sprite + b
-        ));
+    for (uint8_t b = 0; b < 8; ++b) {
+
+      uint8_t byte = 0;
+      if (!(pos % WIDTH || b)  || (pos % WIDTH == WIDTH-1 && b == 7))
+        byte |= 0b10101010;
+      if (pos < WIDTH && b % 4)
+        byte |= 1;
+      if (pos / WIDTH == HEIGHT - 1 && b % 4)
+        byte |= 1<<7;
+      if (level[pos])
+        byte |= pgm_read_byte_near(TEMPLATE(level[pos]).sprite + b);
+
+      ssd1306_send_byte(byte);
+    }
   }
   ssd1306_send_data_stop();
 }
