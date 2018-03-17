@@ -78,13 +78,13 @@ bool split_room(room_t rooms[]) {
   uint8_t door = c21 + rand() % (c22 - c21 + 1);
 
   for (uint8_t n = c21; n <= c22; ++n) {
-    add_entity(find_template(door == n ? DOOR : WALL), cp(split, n));
+    add_entity(door == n ? DOOR : WALL, cp(split, n));
   }
 
   return true;
 }
 
-void build_level() {
+void build_level(uint8_t depth) {
   for (int i = 0; i < WIDTH*HEIGHT; ++i)
     level[i] = 0;
   
@@ -100,9 +100,26 @@ void build_level() {
   while (split_room(rooms)) continue;
 
   // add player
-  add_entity(find_template(PLAYER), 0);
-  // add monsters
-  add_entity(find_template(MONSTER), 35);
+  add_entity(PLAYER, 0);
+
+  // fill rooms
+  for (uint8_t i = 0; i < MAX_ROOMS; ++i) {
+    room_t room = rooms[i];
+    if (room.corner1 > room.corner2 || !room.corner1 /*FIXME*/)
+      continue;
+    uint8_t width  = room.corner2 % WIDTH - room.corner1 % WIDTH + 1;
+    uint8_t height = room.corner2 / WIDTH - room.corner1 / WIDTH + 1;
+
+    uint8_t monster_count = 0;
+    while ( rand() % 0xFF < MONSTER_SPAWN_RATE &&
+            monster_count++ < depth) {
+
+      uint8_t pos = room.corner1 + rand() % width
+                                 + rand() % height * WIDTH;
+      if (!level[pos])
+        add_entity(MONSTER, pos);
+    }
+  }
 }
 
 #endif

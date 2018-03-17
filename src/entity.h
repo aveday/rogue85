@@ -43,18 +43,12 @@ const template_t templates[] PROGMEM = {
   {BRICK_S,   ~0,                 WALL, NULL},
   {DOOR_S,     1,          DOOR|TARGET, NULL},
 
-  {PLAYER_S,  10,        PLAYER|TARGET, player_control},
-  {SKELETON_S, 2,       MONSTER|TARGET, basic_ai},
+  {PLAYER_S,  20,        PLAYER|TARGET, player_control},
   {RAT_S,      1,       MONSTER|TARGET, basic_ai},
+  {SKELETON_S, 2,       MONSTER|TARGET, basic_ai},
 
   {SWORD_S,   20,                 ITEM, NULL}
 };
-
-uint8_t find_template(uint8_t flag) {
-  uint8_t id = 0;
-  while ( !(flag & pgm_read_byte_near(&templates[id].flags)) ) ++id;
-  return id;
-}
 
 entityId find_entity(uint8_t flag) {
   uint8_t id = 0;
@@ -62,7 +56,11 @@ entityId find_entity(uint8_t flag) {
   return id;
 }
 
-entityId add_entity(uint8_t templateId, uint8_t pos) {
+entityId add_entity(uint8_t flags, uint8_t pos) {
+  uint8_t templateId = 0;
+  while ( ~(~flags | pgm_read_byte_near(&templates[templateId].flags)) )
+    ++templateId;
+
   entityId id = 1;
   while (id < MAX_ENTITIES && entities[id].hp) ++id;
   if (id == MAX_ENTITIES)
