@@ -107,6 +107,7 @@ void build_level(uint8_t depth) {
     room_t room = rooms[i];
     if (room.corner1 > room.corner2 || !room.corner1 /*FIXME*/)
       continue;
+
     uint8_t width  = room.corner2 % WIDTH - room.corner1 % WIDTH + 1;
     uint8_t height = room.corner2 / WIDTH - room.corner1 / WIDTH + 1;
 
@@ -118,6 +119,16 @@ void build_level(uint8_t depth) {
                                  + rand() % height * WIDTH;
       if (!level[pos])
         add_entity(MONSTER, pos);
+    }
+
+    uint8_t item_count = 0;
+    while ( rand() % 0xFF < ITEM_SPAWN_RATE &&
+            item_count++ < depth) {
+
+      uint8_t pos = room.corner1 + rand() % width
+                                 + rand() % height * WIDTH;
+      if (!level[pos])
+        add_entity(ITEM, pos);
     }
   }
 }

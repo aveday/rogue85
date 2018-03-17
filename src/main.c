@@ -15,6 +15,17 @@
 
 uint8_t turn = 0;
 
+sprite_t selected_s = {
+  0b00000010,
+  0b00000100,
+  0b00001100,
+  0b00001100,
+  0b00001100,
+  0b00001100,
+  0b00000100,
+  0b00000010
+};
+
 void draw_ui(entityId id) {
   ssd1306_setpos(0, 0);
   ssd1306_string_font6x8("HP");
@@ -22,9 +33,29 @@ void draw_ui(entityId id) {
     &templates[entities[id].templateId].max_hp
   ), entities[id].hp);
 
-  ssd1306_setpos(80, 1);
-  ssd1306_string_font6x8("turn ");
-  ssd1306_numdec_font6x8(turn);
+  uint8_t inventory_x = 128 - 9 * INVENTORY;
+
+  ssd1306_setpos(inventory_x, 0);
+  ssd1306_send_data_start();
+  for (uint8_t i = MAX_ENTITIES; i < MAX_ENTITIES + INVENTORY; ++i) {
+    ssd1306_send_byte(0);
+    for (uint8_t b = 0; b < 8; ++b) {
+      uint8_t byte = 0;
+      if (entities[i].hp)
+        byte = pgm_read_byte_near(TEMPLATE(i).sprite + b);
+      else if (b == 3 || b == 4)
+        byte = 0x18;
+      ssd1306_send_byte(byte);
+    }
+  }
+  ssd1306_setpos(inventory_x, 1);
+  ssd1306_send_data_start();
+  for (uint8_t i = 0; i < INVENTORY; ++i) {
+    ssd1306_send_byte(0);
+    for (uint8_t b = 0; b < 8; ++b)
+      ssd1306_send_byte(i == selected ? selected_s[b] : 0);
+  }
+  ssd1306_send_data_stop();
 }
 
 void draw_level() {
@@ -38,7 +69,7 @@ void draw_level() {
         byte |= 0b10101010;
       if (pos < WIDTH && b % 4)
         byte |= 1;
-      if (pos / WIDTH == HEIGHT - 1 && b % 4)
+      else if (pos / WIDTH == HEIGHT - 1 && b % 4)
         byte |= 1<<7;
       if (level[pos])
         byte |= pgm_read_byte_near(TEMPLATE(level[pos]).sprite + b);
@@ -75,7 +106,7 @@ int main() {
   init_input();
 
   // initialize entity and level arrays
-  for (entityId id = 0; id < MAX_ENTITIES; ++id)
+  for (entityId id = 0; id < MAX_ENTITIES + INVENTORY; ++id)
     remove_entity(id);
 
   build_level(1);

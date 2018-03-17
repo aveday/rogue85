@@ -34,7 +34,8 @@ typedef struct {
 } template_t;
 
 entityId level[WIDTH*HEIGHT];
-entity_t entities[MAX_ENTITIES];
+entity_t entities[MAX_ENTITIES + INVENTORY];
+uint8_t selected = 0;
 
 void basic_ai(entityId id);
 void player_control(entityId id);
@@ -113,6 +114,23 @@ bool attack(entityId id, int8_t dx, int8_t dy) {
   return true;
 }
 
+bool take(entityId id, int8_t dx, int8_t dy) {
+  if (!in_bounds(entities[id].pos, dx, dy))
+      return false;
+
+  entityId item = relative(id, dx, dy);
+  if (!FLAG(item, ITEM))
+    return false;
+
+  if (!entities[MAX_ENTITIES+selected].hp) {
+    entities[MAX_ENTITIES + selected].templateId = entities[item].templateId;
+    entities[MAX_ENTITIES + selected].hp = entities[item].hp;
+    remove_entity(item);
+  }
+
+  return true;
+}
+
 int8_t sign(int8_t a) {
   if (a > 0) return 1;
   if (a < 0) return -1;
@@ -120,7 +138,6 @@ int8_t sign(int8_t a) {
 }
 
 void basic_ai(entityId id) {
-  //entityId player = 1; // FIXME
   entityId player = find_entity(PLAYER);
 
   // FOLLOW
@@ -137,6 +154,11 @@ void basic_ai(entityId id) {
     attack(id, dx, dy);
 }
 
+bool select(int8_t dx) {
+  selected = (selected + INVENTORY + dx) % INVENTORY;
+  return true;
+}
+
 bool handle_input(uint8_t input, entityId id) {
   int8_t dx = (input & LEFT) ? -1 : (input & RIGHT) ? 1 : 0;
   int8_t dy = (input & UP) ? -1 : (input & DOWN) ? 1 : 0;
@@ -144,9 +166,9 @@ bool handle_input(uint8_t input, entityId id) {
   switch(input & 0b1111) {
     case 0: return move(id, dx, dy);
     case A: return attack(id, dx, dy);
-    case B: return false;
+    case B: return take(id, dx, dy);
     case X: return false;
-    case Y: return false;
+    case Y: return select(dx);
   }
   return false;
 }
