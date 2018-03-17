@@ -33,8 +33,8 @@ typedef struct {
   void (*behaviour)(entityId);
 } template_t;
 
-entityId level[WIDTH*HEIGHT];
-entity_t entities[MAX_ENTITIES + INVENTORY];
+entityId level[WIDTH*HEIGHT + INVENTORY];
+entity_t entities[MAX_ENTITIES];
 uint8_t selected = 0;
 
 void basic_ai(entityId id);
@@ -118,21 +118,16 @@ bool take(entityId id, int8_t dx, int8_t dy) {
   if (!in_bounds(entities[id].pos, dx, dy))
       return false;
 
-  entityId item = relative(id, dx, dy);
+  entityId target = relative(id, dx, dy);
+  uint8_t pos = entities[id].pos + dx + WIDTH * dy;
+  entityId equipped = level[WIDTH*HEIGHT + selected];
 
-  if (FLAG(item, ITEM) && !entities[MAX_ENTITIES+selected].hp) {
-    entities[MAX_ENTITIES + selected].templateId = entities[item].templateId;
-    entities[MAX_ENTITIES + selected].hp = entities[item].hp;
-    remove_entity(item);
-  } else if (!item && entities[MAX_ENTITIES+selected].hp) {
-    uint8_t n = 1;
-    while (entities[n].hp) ++n;
-    uint8_t pos = entities[id].pos + dx + WIDTH * dy;
-    entities[n].templateId = entities[MAX_ENTITIES+selected].templateId;
-    entities[n].hp = entities[MAX_ENTITIES+selected].hp;
-    entities[n].pos = pos;
-    level[pos] = n;
-    remove_entity(MAX_ENTITIES + selected);
+  if (FLAG(target, ITEM) && !equipped) {
+    level[WIDTH*HEIGHT + selected] = target;
+    level[pos] = 0;
+  } else if (!target && equipped) {
+    level[pos] = equipped;
+    level[WIDTH*HEIGHT + selected] = 0;
   }
 
   return true;

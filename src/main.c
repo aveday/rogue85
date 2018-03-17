@@ -37,12 +37,13 @@ void draw_ui(entityId id) {
 
   ssd1306_setpos(inventory_x, 0);
   ssd1306_send_data_start();
-  for (uint8_t i = MAX_ENTITIES; i < MAX_ENTITIES + INVENTORY; ++i) {
+  for (uint8_t i = 0; i < INVENTORY; ++i) {
+    uint8_t item = level[WIDTH * HEIGHT + i];
     ssd1306_send_byte(0);
     for (uint8_t b = 0; b < 8; ++b) {
       uint8_t byte = 0;
-      if (entities[i].hp)
-        byte = pgm_read_byte_near(TEMPLATE(i).sprite + b);
+      if (entities[item].hp)
+        byte = pgm_read_byte_near(TEMPLATE(item).sprite + b);
       else if (b == 3 || b == 4)
         byte = 0x18;
       ssd1306_send_byte(byte);
@@ -105,8 +106,12 @@ int main() {
   init_graphics();
   init_input();
 
-  // initialize entity and level arrays
-  for (entityId id = 0; id < MAX_ENTITIES + INVENTORY; ++id)
+  // initialize inventory
+  for (uint8_t i = 0; i < INVENTORY; ++i)
+    level[WIDTH * HEIGHT + i] = 0;
+
+  // initialize entity array
+  for (entityId id = 0; id < MAX_ENTITIES; ++id)
     remove_entity(id);
 
   build_level(1);
