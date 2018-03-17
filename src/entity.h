@@ -119,13 +119,20 @@ bool take(entityId id, int8_t dx, int8_t dy) {
       return false;
 
   entityId item = relative(id, dx, dy);
-  if (!FLAG(item, ITEM))
-    return false;
 
-  if (!entities[MAX_ENTITIES+selected].hp) {
+  if (FLAG(item, ITEM) && !entities[MAX_ENTITIES+selected].hp) {
     entities[MAX_ENTITIES + selected].templateId = entities[item].templateId;
     entities[MAX_ENTITIES + selected].hp = entities[item].hp;
     remove_entity(item);
+  } else if (!item && entities[MAX_ENTITIES+selected].hp) {
+    uint8_t n = 1;
+    while (entities[n].hp) ++n;
+    uint8_t pos = entities[id].pos + dx + WIDTH * dy;
+    entities[n].templateId = entities[MAX_ENTITIES+selected].templateId;
+    entities[n].hp = entities[MAX_ENTITIES+selected].hp;
+    entities[n].pos = pos;
+    level[pos] = n;
+    remove_entity(MAX_ENTITIES + selected);
   }
 
   return true;
