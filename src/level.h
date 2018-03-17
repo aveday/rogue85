@@ -7,7 +7,10 @@
 typedef struct {
   uint8_t corner1;
   uint8_t corner2;
+  bool hidden;
 } room_t;
+
+room_t rooms[MAX_ROOMS];
 
 bool split_room(room_t rooms[]) {
   uint8_t cxy(uint8_t x, uint8_t y) { return WIDTH * y + x; }
@@ -22,7 +25,7 @@ bool split_room(room_t rooms[]) {
   for (id = 0; id < MAX_ROOMS - 1; ++id) {
     room_t room = rooms[id];
 
-    if (room.corner1 > room.corner2)
+    if (room.corner1 > room.corner2 || room.hidden)
       continue;
 
     uint8_t width = room.corner2 % WIDTH - room.corner1 % WIDTH + 1;
@@ -31,7 +34,7 @@ bool split_room(room_t rooms[]) {
     bool too_short  = height < MIN_Y*2 + 1;
 
     if (too_narrow && too_short)
-      continue;
+      rooms[id].hidden = true;
 
     bool v = too_short || (rand() % (width + height) < width && !too_narrow);
     c11 = v ? room.corner1 % WIDTH : room.corner1 / WIDTH;
@@ -43,13 +46,12 @@ bool split_room(room_t rooms[]) {
     split = c11 + min + rand() % (c12 - c11 + 1 - 2*min);
 
     // check if new wall would block an existing door
-    bool blocking = false;
     for (int8_t d = -1; d <= 1; d += 2)
       if (in_bounds(cp(split, d<0?c21:c22), v?0:d, v?d:0) &&
           FLAG(level[cp(split, (d<0?c21:c22) + d)], DOOR))
-        blocking = true;
+        rooms[id].hidden = true;
 
-    if (blocking)
+    if (rooms[id].hidden)
       continue;
     break;
   }
@@ -63,17 +65,9 @@ bool split_room(room_t rooms[]) {
   if (next == MAX_ROOMS)
     return false;
 
-  uint8_t nc1 = cp(split + 1, c21);
-  uint8_t nc2 = cp(split - 1, c22);
-  if (rand() % 2) {
-    rooms[next].corner1 = nc1;
-    rooms[next].corner2 = rooms[id].corner2;
-    rooms[id].corner2   = nc2;
-  } else {
-    rooms[next].corner1 = rooms[id].corner1;
-    rooms[next].corner2 = nc2;
-    rooms[id].corner1   = nc1;
-  }
+  rooms[next].corner1 = cp(split + 1, c21);
+  rooms[next].corner2 = rooms[id].corner2;
+  rooms[id].corner2   = cp(split - 1, c22);
 
   uint8_t door = c21 + rand() % (c22 - c21 + 1);
 
@@ -88,11 +82,11 @@ void build_level(uint8_t depth) {
   for (int i = 0; i < WIDTH*HEIGHT; ++i)
     level[i] = 0;
   
-  room_t rooms[MAX_ROOMS];
   for (int i = 0; i < MAX_ROOMS; ++i) {
     // rooms unused if corner1 > corner2
     rooms[i].corner1 = 1;
     rooms[i].corner2 = 0;
+    rooms[i].hidden = false;
   }
 
   rooms[0].corner1 = 0;
