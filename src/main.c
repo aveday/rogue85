@@ -56,14 +56,12 @@ void loop(entityId player) {
 
   for (uint8_t id = 0; id < MAX_ENTITIES; ++id) {
     if (!entities[id].hp || FLAG(id, WALL) || FLAG(id, DOOR)) continue;
-    draw_level();
+
+    if (id == player)
+      draw_level(player);
 
     void (*behaviour)(entityId) = FIELD(ptr, id, behaviour);
     if (behaviour) behaviour(id);
-
-    if (id == player) {
-      draw_level(player);
-    }
   }
 
   ++turn;
