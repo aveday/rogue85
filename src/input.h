@@ -1,10 +1,11 @@
-#include <avr/io.h>
-#include <stdbool.h>
 #ifndef INPUT_H
 #define INPUT_H
 
-#define SAMPLES 12
-#define INPUT_SENSITIVITY 9
+#include <avr/io.h>
+#include <stdbool.h>
+
+#define SAMPLES 20
+#define INPUT_SENSITIVITY 12
 
 #define UP 1<<4
 #define DOWN 1<<7
