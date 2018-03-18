@@ -128,18 +128,19 @@ bool take(entityId id, int8_t dx, int8_t dy) {
   } else if (!target && equipped) {
     level[pos] = equipped;
     level[WIDTH*HEIGHT + selected] = 0;
+  } else {
+    return false;
   }
 
   return true;
 }
 
-int8_t sign(int8_t a) {
-  if (a > 0) return 1;
-  if (a < 0) return -1;
-  return 0;
-}
-
 void basic_ai(entityId id) {
+  int8_t sign(int8_t a) {
+    if (a > 0) return 1;
+    if (a < 0) return -1;
+    return 0;
+  }
   entityId player = find_entity(PLAYER);
 
   // FOLLOW
