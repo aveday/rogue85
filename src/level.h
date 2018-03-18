@@ -80,6 +80,27 @@ bool split_room(room_t rooms[]) {
   return true;
 }
 
+bool in_room(uint8_t pos, uint8_t roomId) {
+  room_t room = rooms[roomId];
+  return pos % WIDTH >= room.corner1 % WIDTH - 1 &&
+         pos / WIDTH >= room.corner1 / WIDTH - 1 &&
+         pos % WIDTH <= room.corner2 % WIDTH + 1 &&
+         pos / WIDTH <= room.corner2 / WIDTH + 1;
+}
+
+void discover_rooms(uint8_t pos) {
+  for (uint8_t i = 0; i < MAX_ROOMS; ++i)
+    if (rooms[i].hidden && in_room(pos, i))
+      rooms[i].hidden = false;
+}
+
+bool visible(uint8_t pos) {
+  for (uint8_t i = 0; i < MAX_ROOMS; ++i)
+    if (!rooms[i].hidden && in_room(pos, i))
+      return true;
+  return false;
+}
+
 void build_level(uint8_t depth) {
   for (int i = 0; i < WIDTH*HEIGHT; ++i)
     level[i] = 0;
@@ -95,8 +116,12 @@ void build_level(uint8_t depth) {
   rooms[0].corner2 = (WIDTH - 1) + WIDTH * (HEIGHT - 1);
   while (split_room(rooms)) continue;
 
+  for (int i = 0; i < MAX_ROOMS; ++i)
+    rooms[i].hidden = true;
+
   // add player
   add_entity(PLAYER, 0);
+  rooms[0].hidden = false;
 
   // fill rooms
   for (uint8_t i = 0; i < MAX_ROOMS; ++i) {

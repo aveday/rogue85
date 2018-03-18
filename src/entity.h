@@ -72,9 +72,12 @@ entityId add_entity(uint8_t flags, uint8_t pos) {
   return level[pos] = id;
 }
 
+void discover_rooms(uint8_t);
 void remove_entity(entityId id) {
   level[entities[id].pos] = 0;
   entities[id].hp = 0;
+  discover_rooms(entities[id].pos);
+ 
 }
 
 bool in_bounds(uint8_t pos, int8_t dx, int8_t dy) {

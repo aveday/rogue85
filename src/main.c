@@ -72,7 +72,7 @@ void draw_level() {
         byte |= 1;
       else if (pos / WIDTH == HEIGHT - 1 && b % 4)
         byte |= 1<<7;
-      if (level[pos])
+      if (level[pos] && visible(pos))
         byte |= pgm_read_byte_near(TEMPLATE(level[pos]).sprite + b);
 
       ssd1306_send_byte(byte);
