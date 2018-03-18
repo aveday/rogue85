@@ -15,17 +15,6 @@
 
 uint8_t turn = 0;
 
-sprite_t selected_s = {
-  0b00000010,
-  0b00000100,
-  0b00001100,
-  0b00001100,
-  0b00001100,
-  0b00001100,
-  0b00000100,
-  0b00000010
-};
-
 void draw_ui(entityId id) {
   ssd1306_setpos(0, 0);
   ssd1306_string_font6x8("HP");
@@ -54,7 +43,7 @@ void draw_ui(entityId id) {
   for (uint8_t i = 0; i < INVENTORY; ++i) {
     ssd1306_send_byte(0);
     for (uint8_t b = 0; b < 8; ++b)
-      ssd1306_send_byte(i == selected ? selected_s[b] : 0);
+      ssd1306_send_byte(i == selected ? SPRITE(selected_s+b): 0);
   }
   ssd1306_send_data_stop();
 }
