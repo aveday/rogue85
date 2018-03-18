@@ -57,7 +57,7 @@ void draw_level() {
       else if (pos / WIDTH == HEIGHT - 1 && b % 4)
         byte |= 1<<7;
       if (!visible(pos))
-        byte |= 1 << (b*5 % 8);
+        byte = 1 << b*5 % 8;
       else if (level[pos])
         byte |= pgm_read_byte_near(TEMPLATE(level[pos]).sprite + b);
 
