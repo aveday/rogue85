@@ -4,6 +4,8 @@
 #include "entity.h"
 #include "config.h"
 
+#define ROOM_EXISTS(i) (rooms[i].corner1 <= rooms[i].corner2)
+
 typedef struct {
   uint8_t corner1;
   uint8_t corner2;
@@ -60,7 +62,7 @@ bool split_room(room_t rooms[]) {
     return false;
 
   uint8_t next = id + 1;
-  while (next < MAX_ROOMS && rooms[next].corner1 <= rooms[next].corner2)
+  while (next < MAX_ROOMS && ROOM_EXISTS(next))
     ++next;
   if (next == MAX_ROOMS)
     return false;
