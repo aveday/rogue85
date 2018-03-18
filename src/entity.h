@@ -41,7 +41,7 @@ void basic_ai(entityId id);
 void player_control(entityId id);
 
 const template_t templates[] PROGMEM = {
-  {BRICK_S,   ~0,                 WALL, NULL},
+  {BRICK_S,    5,                 WALL, NULL},
   {DOOR_S,     1,          DOOR|TARGET, NULL},
 
   {PLAYER_S,  20,        PLAYER|TARGET, player_control},
@@ -104,7 +104,7 @@ bool attack(entityId id, int8_t dx, int8_t dy) {
       return false;
 
   entityId target = relative(id, dx, dy);
-  if (!FLAG(target, TARGET))
+  if (!target || !FLAG(target, TARGET))
     return false;
 
   entities[target].hp--;
