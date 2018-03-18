@@ -8,6 +8,15 @@ typedef const uint8_t sprite_t[8];
 void init_graphics() {
   _delay_ms(50);
   ssd1306_init();
+
+  _delay_ms(50);
+
+  ssd1306_setpos(0, 0);
+  ssd1306_send_data_start();
+  for (int i = 0; i < WIDTH * 8*(HEIGHT+2); ++i)
+    ssd1306_send_byte(0);
+
+  ssd1306_send_data_stop();
 }
 
 void draw_sprite(sprite_t sprite) {
