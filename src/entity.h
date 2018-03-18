@@ -4,7 +4,6 @@
 #include "config.h"
 #include "graphics.h"
 #include "sprites.h"
-#include "debug.h"
 
 // TEMPLATE FLAGS
 #define PLAYER  1 << 1

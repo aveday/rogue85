@@ -2,3 +2,4 @@ obj
 lib
 *.hex
 *.elf
+ssd1306xled/*

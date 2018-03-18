@@ -4,14 +4,12 @@
 #include <avr/wdt.h>
 #include <util/delay.h>
 
-#include "ssd1306xled/ssd1306xled.h"
+#include "ssd1306xled.h"
 #include "config.h"
 #include "input.h"
 #include "graphics.h"
 #include "entity.h"
 #include "level.h"
-
-#include "debug.h"
 
 uint8_t turn = 0;
 
@@ -110,5 +108,5 @@ int main() {
     loop(player);
 
   wdt_enable(WDTO_2S);
-  for (;;) ssd1306_string_font6x8("YOU DIED. ");
+  for (;;);
 }
