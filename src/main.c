@@ -17,10 +17,8 @@ uint8_t turn = 0;
 
 void draw_ui(entityId id) {
   ssd1306_setpos(0, 0);
-  ssd1306_string_font6x8("HP");
-  draw_bar( pgm_read_byte_near(
-    &templates[entities[id].templateId].max_hp
-  ), entities[id].hp);
+  draw_sprite(heart_s);
+  draw_bar(FIELD(byte, id, max_hp), entities[id].hp);
 
   uint8_t inventory_x = 128 - 9 * INVENTORY;
 

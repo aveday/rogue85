@@ -1,3 +1,8 @@
+#include <avr/pgmspace.h>
+#include <stdint.h>
+
+#define SPRITE(address) pgm_read_byte_near(address)
+
 #define EMPTY_S { 0, 0, 0, 0, 0, 0, 0, 0 }
 
 #define BRICK_S {\
@@ -77,7 +82,7 @@
   0b00000000,\
 }
 
-const uint8_t selected_s[] PROGMEM = {
+const sprite_t selected_s PROGMEM = {
   0b00000010,
   0b00000100,
   0b00001100,
@@ -88,3 +93,13 @@ const uint8_t selected_s[] PROGMEM = {
   0b00000010
 };
 
+const sprite_t heart_s PROGMEM = {
+  0b00001100,
+  0b00011110,
+  0b00111110,
+  0b01111100,
+  0b00111110,
+  0b00011110,
+  0b00001100,
+  0b00000000,
+};

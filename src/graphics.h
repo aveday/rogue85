@@ -3,20 +3,18 @@
 
 #include <avr/pgmspace.h>
 
-typedef uint8_t sprite_t[8];
+typedef const uint8_t sprite_t[8];
 
 void init_graphics() {
   _delay_ms(50);
   ssd1306_init();
-  _delay_ms(50);
-  ssd1306_fill(0);
 }
 
-void draw_sprite(sprite_t sprite, uint8_t x, uint8_t y) {
-  ssd1306_setpos(x * 8, y);
+void draw_sprite(sprite_t sprite) {
   ssd1306_send_data_start();
-  for (uint8_t i = 0; i < 8; ++i)
-    ssd1306_send_byte(sprite[i]);
+  for (uint8_t i = 0; i < 8; ++i) {
+    ssd1306_send_byte( pgm_read_byte_near(sprite + i) );
+  }
   ssd1306_send_data_stop();
 }
 
