@@ -64,7 +64,6 @@ void draw_level() {
   ssd1306_send_data_start();
   for (uint8_t pos = 0; pos < WIDTH * HEIGHT; ++pos) {
     for (uint8_t b = 0; b < 8; ++b) {
-
       uint8_t byte = 0;
       if (!(pos % WIDTH || b)  || (pos % WIDTH == WIDTH-1 && b == 7))
         byte |= 0b10101010;

@@ -41,14 +41,22 @@ void basic_ai(entityId id);
 void player_control(entityId id);
 
 const template_t templates[] PROGMEM = {
+  {PLAYER_S,  20,        PLAYER|TARGET, player_control},
+
+  // ENVIRONMENT
   {BRICK_S,    5,                 WALL, NULL},
   {DOOR_S,     1,          DOOR|TARGET, NULL},
 
-  {PLAYER_S,  20,        PLAYER|TARGET, player_control},
+  // MONSTERS
   {RAT_S,      1,       MONSTER|TARGET, basic_ai},
   {SKELETON_S, 2,       MONSTER|TARGET, basic_ai},
 
-  {SWORD_S,   20,                 ITEM, NULL}
+  // ITEMS
+  // groups must be followed by their corresponding player template
+  {SWORD_S,   20,                 ITEM, NULL},
+  {WARRIOR_S, 20,        PLAYER|TARGET, player_control},
+
+  {EMPTY_S,    0,                    0, NULL}
 };
 
 entityId find_entity(uint8_t flag) {
@@ -57,10 +65,18 @@ entityId find_entity(uint8_t flag) {
   return id;
 }
 
+uint8_t find_template(uint8_t start, uint8_t flags) {
+  uint8_t templateId = start;
+  while ( true ) {
+    uint8_t tFlags = pgm_read_byte_near(&templates[templateId].flags);
+    if ( !~(~flags | tFlags) ) break;
+    templateId = tFlags ? (templateId + 1) : 0;
+  }
+  return templateId;
+}
+
 entityId add_entity(uint8_t flags, uint8_t pos) {
-  uint8_t templateId = 0;
-  while ( ~(~flags | pgm_read_byte_near(&templates[templateId].flags)) )
-    ++templateId;
+  uint8_t templateId = find_template(0, flags);
 
   entityId id = 1;
   while (id < MAX_ENTITIES && entities[id].hp) ++id;
@@ -117,6 +133,18 @@ bool attack(entityId id, int8_t dx, int8_t dy) {
   return true;
 }
 
+bool select(entityId id, int8_t dx) {
+  selected = (selected + INVENTORY + dx) % INVENTORY;
+
+  entityId item = level[WIDTH*HEIGHT + selected];
+
+  entities[id].templateId = find_template(
+      item ? entities[item].templateId : 0,
+      PLAYER);
+
+  return true;
+}
+
 bool take(entityId id, int8_t dx, int8_t dy) {
   if (!in_bounds(entities[id].pos, dx, dy))
       return false;
@@ -135,6 +163,7 @@ bool take(entityId id, int8_t dx, int8_t dy) {
     return false;
   }
 
+  select(id, 0);
   return true;
 }
 
@@ -160,11 +189,6 @@ void basic_ai(entityId id) {
     attack(id, dx, dy);
 }
 
-bool select(int8_t dx) {
-  selected = (selected + INVENTORY + dx) % INVENTORY;
-  return true;
-}
-
 bool handle_input(uint8_t input, entityId id) {
   int8_t dx = (input & LEFT) ? -1 : (input & RIGHT) ? 1 : 0;
   int8_t dy = (input & UP) ? -1 : (input & DOWN) ? 1 : 0;
@@ -174,7 +198,7 @@ bool handle_input(uint8_t input, entityId id) {
     case A: return attack(id, dx, dy);
     case B: return take(id, dx, dy);
     case X: return false;
-    case Y: return select(dx);
+    case Y: return select(id, dx);
   }
   return false;
 }
