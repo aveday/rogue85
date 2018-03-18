@@ -16,7 +16,7 @@
 
 #define TEMPLATE(id) templates[entities[id].templateId]
 #define FIELD(type, id, field) (pgm_read_ ## type ## _near(&(TEMPLATE(id).field)))
-#define FLAG(id, flag) (FIELD(byte, id, flags) & flag)
+#define FLAG(id, flag) (FIELD(byte, id, flags) & (flag))
 
 typedef uint8_t entityId;
 
@@ -30,7 +30,7 @@ typedef struct {
   const sprite_t sprite;
   const uint8_t max_hp;
   const uint8_t flags;
-  void (*behaviour)(entityId);
+  void* behaviour;
 } template_t;
 
 entityId level[WIDTH*HEIGHT + INVENTORY];
@@ -39,6 +39,7 @@ uint8_t selected = 0;
 
 void basic_ai(entityId id);
 void player_control(entityId id);
+bool sword_attack(entityId id, int8_t dx, int8_t dy);
 
 const template_t templates[] PROGMEM = {
   {PLAYER_S,  20,        PLAYER|TARGET, player_control},
@@ -53,7 +54,7 @@ const template_t templates[] PROGMEM = {
 
   // ITEMS
   // groups must be followed by their corresponding player template
-  {SWORD_S,   20,                 ITEM, NULL},
+  {SWORD_S,   20,                 ITEM, sword_attack},
   {WARRIOR_S, 20,        PLAYER|TARGET, player_control},
 
   {EMPTY_S,    0,                    0, NULL}
@@ -133,6 +134,26 @@ bool attack(entityId id, int8_t dx, int8_t dy) {
   return true;
 }
 
+bool sword_attack(entityId id, int8_t dx, int8_t dy) {
+  if (move(id, dx, dy)) {
+    for (int8_t d = -1; d <= 1; d += 2) {
+      attack(id, 0, d);
+      attack(id, d, 0);
+    }
+    return true;
+  }
+  return attack(id, dx, dy);
+}
+
+bool use_item(entityId id, int8_t dx, int8_t dy) {
+  uint8_t item = level[WIDTH*HEIGHT + selected];
+  if (!item)
+    return attack(id, dx, dy);
+
+  bool (*action)(entityId, int8_t, int8_t) = FIELD(ptr, item, behaviour);
+  return action(id, dx, dy);
+}
+
 bool select(entityId id, int8_t dx) {
   selected = (selected + INVENTORY + dx) % INVENTORY;
 
@@ -192,10 +213,10 @@ void basic_ai(entityId id) {
 bool handle_input(uint8_t input, entityId id) {
   int8_t dx = (input & LEFT) ? -1 : (input & RIGHT) ? 1 : 0;
   int8_t dy = (input & UP) ? -1 : (input & DOWN) ? 1 : 0;
-  
+
   switch(input & 0b1111) {
     case 0: return move(id, dx, dy);
-    case A: return attack(id, dx, dy);
+    case A: return use_item(id, dx, dy);
     case B: return take(id, dx, dy);
     case X: return false;
     case Y: return select(id, dx);

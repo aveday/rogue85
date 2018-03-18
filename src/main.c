@@ -93,8 +93,8 @@ void loop(entityId player) {
     if (id == player)
       draw_level(player);
 
-    void (*behaviour)(entityId) = FIELD(ptr, id, behaviour);
-    if (behaviour) behaviour(id);
+    if (FLAG(id, MONSTER|PLAYER))
+      ((void (*)(entityId)) FIELD(ptr, id, behaviour)) (id);
   }
 
   ++turn;
