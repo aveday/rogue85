@@ -6,10 +6,13 @@
 
 #define ROOM_EXISTS(i) (rooms[i].corner1 <= rooms[i].corner2)
 
+// room flags
+#define HIDDEN (1 << 0)
+
 typedef struct {
   uint8_t corner1;
   uint8_t corner2;
-  bool hidden;
+  uint8_t flags;
 } room_t;
 
 room_t rooms[MAX_ROOMS];
@@ -27,7 +30,7 @@ bool split_room(room_t rooms[]) {
   for (id = 0; id < MAX_ROOMS - 1; ++id) {
     room_t room = rooms[id];
 
-    if (room.corner1 > room.corner2 || room.hidden)
+    if (!(ROOM_EXISTS(id)) || (room.flags & HIDDEN))
       continue;
 
     uint8_t width = room.corner2 % WIDTH - room.corner1 % WIDTH + 1;
@@ -36,7 +39,7 @@ bool split_room(room_t rooms[]) {
     bool too_short  = height < MIN_Y*2 + 1;
 
     if (too_narrow && too_short)
-      rooms[id].hidden = true;
+      rooms[id].flags |= HIDDEN;
 
     bool v = too_short || (rand() % (width + height) < width && !too_narrow);
     c11 = v ? room.corner1 % WIDTH : room.corner1 / WIDTH;
@@ -51,11 +54,10 @@ bool split_room(room_t rooms[]) {
     for (int8_t d = -1; d <= 1; d += 2)
       if (in_bounds(cp(split, d<0?c21:c22), v?0:d, v?d:0) &&
           FLAG(level[cp(split, (d<0?c21:c22) + d)], DOOR))
-        rooms[id].hidden = true;
+        rooms[id].flags |= HIDDEN;
 
-    if (rooms[id].hidden)
-      continue;
-    break;
+    if (!(rooms[id].flags & HIDDEN))
+      break;
   }
 
   if (id == MAX_ROOMS - 1)
@@ -90,13 +92,13 @@ bool in_room(uint8_t pos, uint8_t roomId) {
 
 void discover_rooms(uint8_t pos) {
   for (uint8_t i = 0; i < MAX_ROOMS; ++i)
-    if (rooms[i].hidden && in_room(pos, i))
-      rooms[i].hidden = false;
+    if (rooms[i].flags & HIDDEN && in_room(pos, i))
+      rooms[i].flags &= ~HIDDEN;
 }
 
 bool visible(uint8_t pos) {
   for (uint8_t i = 0; i < MAX_ROOMS; ++i)
-    if (!rooms[i].hidden && in_room(pos, i))
+    if (!(rooms[i].flags & HIDDEN) && in_room(pos, i))
       return true;
   return false;
 }
@@ -109,7 +111,7 @@ void build_level(uint8_t depth) {
     // rooms unused if corner1 > corner2
     rooms[i].corner1 = 1;
     rooms[i].corner2 = 0;
-    rooms[i].hidden = false;
+    rooms[i].flags &= ~HIDDEN;
   }
 
   rooms[0].corner1 = 0;
@@ -117,16 +119,16 @@ void build_level(uint8_t depth) {
   while (split_room(rooms)) continue;
 
   for (int i = 0; i < MAX_ROOMS; ++i)
-    rooms[i].hidden = true;
+    rooms[i].flags |= HIDDEN;
 
   // add player
   add_entity(PLAYER, 0);
-  rooms[0].hidden = false;
+  rooms[0].flags &= ~HIDDEN;
 
   // fill rooms
   for (uint8_t i = 0; i < MAX_ROOMS; ++i) {
     room_t room = rooms[i];
-    if (room.corner1 > room.corner2 || !room.corner1 /*FIXME*/)
+    if (!ROOM_EXISTS(i) || !room.corner1 /*FIXME*/)
       continue;
 
     uint8_t width  = room.corner2 % WIDTH - room.corner1 % WIDTH + 1;
