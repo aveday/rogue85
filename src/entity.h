@@ -57,11 +57,11 @@ const template_t templates[] PROGMEM = {
   { ZOMBIE_S        ,  0x18 ,   2 , MONSTER|TARGET , basic_ai         },
   { SKELETON_S      ,  0x28 ,   3 , MONSTER|TARGET , basic_ai         },
 
-  /*-ITEMS & USERS--|-------|-----|----------------|------------------|
+  /*-PLAYER & ITEMS-|-------|-----|----------------|------------------|
   | sprite          | spawn |  hp |           type | action          */
+  { PLAYER_S        ,  0x01 ,  20 ,  PLAYER|TARGET , player_control   },
   { SWORD_S         ,  0x18 ,  20 ,           ITEM , sword_attack     },   
   { WARRIOR_S       ,  0x00 ,  20 ,  PLAYER|TARGET , player_control   }, 
-  { PLAYER_S        ,  0x01 ,  20 ,  PLAYER|TARGET , player_control   },
 };
 
 entityId find_entity(uint8_t flag) {
