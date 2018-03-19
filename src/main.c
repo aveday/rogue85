@@ -78,7 +78,7 @@ void loop(entityId player) {
     if (id == player)
       draw_level(player);
 
-    if (FLAG(id, MONSTER|PLAYER))
+    if (FLAG(id, MONSTER|PLAYER) && visible(entities[id].pos))
       ((void (*)(entityId)) FIELD(ptr, id, behaviour)) (id);
   }
 
