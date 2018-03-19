@@ -13,9 +13,13 @@
 #define ITEM    1 << 5
 #define DOOR    1 << 6
 
+#define N_TEMPLATES (sizeof(templates) / sizeof(template_t))
 #define TEMPLATE(id) templates[entities[id].templateId]
 #define FIELD(type, id, field) (pgm_read_ ## type ## _near(&(TEMPLATE(id).field)))
 #define FLAG(id, flag) (FIELD(byte, id, flags) & (flag))
+
+#define SPAWN(spawnrate) (spawnrate & 0x0F)
+#define DEPTH(spawnrate) ((spawnrate & 0xF0) >> 4)
 
 typedef uint8_t entityId;
 
@@ -27,6 +31,7 @@ typedef struct {
 
 typedef struct {
   const sprite_t sprite;
+  const uint8_t spawnrate;
   const uint8_t max_hp;
   const uint8_t flags;
   void* behaviour;
@@ -41,22 +46,22 @@ void player_control(entityId id);
 bool sword_attack(entityId id, int8_t dx, int8_t dy);
 
 const template_t templates[] PROGMEM = {
-  {PLAYER_S,  20,        PLAYER|TARGET, player_control},
+  /*-ENVIRONMENT----|-------|-----|----------------|------------------|
+  | sprite          | spawn |  hp |           type | action          */
+  { BRICK_S         ,  0x18 ,   5 ,           WALL , NULL             },
+  { DOOR_S          ,  0x18 ,   1 ,    DOOR|TARGET , NULL             },
 
-  // ENVIRONMENT
-  {BRICK_S,    5,                 WALL, NULL},
-  {DOOR_S,     1,          DOOR|TARGET, NULL},
+  /*-MONSTERS-------|-------|-----|----------------|------------------|
+  | sprite          | spawn |  hp |           type | action          */
+  { RAT_S           ,  0x18 ,   1 , MONSTER|TARGET , basic_ai         },
+  { ZOMBIE_S        ,  0x18 ,   2 , MONSTER|TARGET , basic_ai         },
+  { SKELETON_S      ,  0x28 ,   3 , MONSTER|TARGET , basic_ai         },
 
-  // MONSTERS
-  {RAT_S,      1,       MONSTER|TARGET, basic_ai},
-  {SKELETON_S, 2,       MONSTER|TARGET, basic_ai},
-
-  // ITEMS
-  // groups must be followed by their corresponding player template
-  {SWORD_S,   20,                 ITEM, sword_attack},
-  {WARRIOR_S, 20,        PLAYER|TARGET, player_control},
-
-  {EMPTY_S,    0,                    0, NULL}
+  /*-ITEMS & USERS--|-------|-----|----------------|------------------|
+  | sprite          | spawn |  hp |           type | action          */
+  { SWORD_S         ,  0x18 ,  20 ,           ITEM , sword_attack     },   
+  { WARRIOR_S       ,  0x00 ,  20 ,  PLAYER|TARGET , player_control   }, 
+  { PLAYER_S        ,  0x01 ,  20 ,  PLAYER|TARGET , player_control   },
 };
 
 entityId find_entity(uint8_t flag) {
@@ -65,19 +70,29 @@ entityId find_entity(uint8_t flag) {
   return id;
 }
 
-uint8_t find_template(uint8_t start, uint8_t flags) {
-  uint8_t templateId = start;
-  while ( true ) {
+uint8_t gen_template(uint8_t depth, uint8_t flags) {
+  uint16_t spawn_sum = 0;
+  for (uint8_t templateId = 0; templateId < N_TEMPLATES; ++templateId) {
     uint8_t tFlags = pgm_read_byte_near(&templates[templateId].flags);
-    if ( !~(~flags | tFlags) ) break;
-    templateId = tFlags ? (templateId + 1) : 0;
+    uint8_t spawnrate = pgm_read_byte_near(&templates[templateId].spawnrate);
+    if (!~(~flags | tFlags) && DEPTH(spawnrate) <= depth)
+      spawn_sum += SPAWN(spawnrate);
   }
-  return templateId;
+  uint16_t gen = rand() % spawn_sum;
+  for (uint8_t templateId = 0; templateId < N_TEMPLATES; ++templateId) {
+    uint8_t tFlags = pgm_read_byte_near(&templates[templateId].flags);
+    uint8_t spawnrate = pgm_read_byte_near(&templates[templateId].spawnrate);
+    if (!~(~flags | tFlags) && DEPTH(spawnrate) <= depth) {
+      if (gen < SPAWN(spawnrate))
+        return templateId;
+      else
+        gen -= SPAWN(spawnrate);
+    }
+  }
+  return 0;
 }
 
-entityId add_entity(uint8_t flags, uint8_t pos) {
-  uint8_t templateId = find_template(0, flags);
-
+entityId add_entity(uint8_t templateId, uint8_t pos) {
   entityId id = 1;
   while (id < MAX_ENTITIES && entities[id].hp) ++id;
   if (id == MAX_ENTITIES)
@@ -158,9 +173,11 @@ bool select(entityId id, int8_t dx) {
 
   entityId item = level[WIDTH*HEIGHT + selected];
 
-  entities[id].templateId = find_template(
-      item ? entities[item].templateId : 0,
-      PLAYER);
+  uint8_t newTemplate = entities[item].templateId;
+  while (!(pgm_read_byte_near(&templates[newTemplate].flags) & PLAYER))
+    ++newTemplate;
+
+  entities[id].templateId = newTemplate;
 
   return true;
 }

@@ -19,10 +19,10 @@ typedef struct {
 
 room_t rooms[MAX_ROOMS];
 
-bool split_room(room_t rooms[]) {
+bool split_room(room_t rooms[], uint8_t depth) {
   uint8_t cxy(uint8_t x, uint8_t y) { return WIDTH * y + x; }
   uint8_t cyx(uint8_t y, uint8_t x) { return WIDTH * y + x; }
-  
+
   uint8_t id;
   uint8_t c11, c12, c21, c22;
   uint8_t (*cp)(uint8_t, uint8_t);
@@ -78,7 +78,8 @@ bool split_room(room_t rooms[]) {
   uint8_t door = c21 + rand() % (c22 - c21 + 1);
 
   for (uint8_t n = c21; n <= c22; ++n) {
-    add_entity(door == n ? DOOR : WALL, cp(split, n));
+    uint8_t templateId = gen_template(depth, door == n ? DOOR : WALL);
+    add_entity(templateId, cp(split, n));
   }
 
   return true;
@@ -105,7 +106,7 @@ bool visible(uint8_t pos) {
   return false;
 }
 
-bool add_to_room(uint8_t roomId, uint8_t flag) {
+bool add_to_room(uint8_t roomId, uint8_t templateId) {
   room_t room = rooms[roomId];
   uint8_t width  = room.corner2 % WIDTH - room.corner1 % WIDTH + 1;
   uint8_t height = room.corner2 / WIDTH - room.corner1 / WIDTH + 1;
@@ -113,7 +114,7 @@ bool add_to_room(uint8_t roomId, uint8_t flag) {
   uint8_t pos = room.corner1 + rand() % width
                              + rand() % height * WIDTH;
   if (!level[pos])
-    return add_entity(flag, pos);
+    return add_entity(templateId, pos);
   return false;
 }
 
@@ -131,16 +132,13 @@ void build_level(uint8_t depth) {
   rooms[0].corner1 = 0;
   rooms[0].corner2 = (WIDTH - 1) + WIDTH * (HEIGHT - 1);
   uint8_t room_count = 0;
-  while (split_room(rooms))
+  while (split_room(rooms, depth))
     ++room_count;
-
-  for (int i = 0; i < MAX_ROOMS; ++i)
-    rooms[i].flags |= HIDDEN;
 
   uint8_t entry = rand() % room_count;
 
   // add player
-  add_to_room(entry, PLAYER);
+  add_to_room(entry, gen_template(0, PLAYER));
   rooms[entry].flags &= ~HIDDEN;
 
   // fill rooms
@@ -148,13 +146,15 @@ void build_level(uint8_t depth) {
     if (!ROOM_EXISTS(i) || i == entry)
       continue;
 
+    rooms[i].flags |= HIDDEN;
+
     uint8_t monster_count = 0;
     while (rand() % 0xFF < MONSTER_SPAWN_RATE && monster_count++ < depth)
-      add_to_room(i, MONSTER);
+      add_to_room(i, gen_template(depth, MONSTER));
 
     uint8_t item_count = 0;
     while (rand() % 0xFF < ITEM_SPAWN_RATE && item_count++ < depth)
-      add_to_room(i, ITEM);
+      add_to_room(i, gen_template(depth, ITEM));
   }
 }
 
