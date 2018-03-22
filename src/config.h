@@ -2,7 +2,7 @@
 #define HEIGHT 6
 #define MAX_ENTITIES 64
 #define INVENTORY 4
-#define MONSTER_SPAWN_RATE 0x6F
+#define MONSTER_SPAWN_RATE 0xA0
 #define ITEM_SPAWN_RATE 0x4F
 
 #define MAX_ROOMS 10

@@ -100,8 +100,7 @@ int main() {
   for (entityId id = 0; id < MAX_ENTITIES; ++id)
     remove_entity(id);
 
-  build_level(1);
-
+  first_level(1);
   entityId player = find_entity(PLAYER);
 
   while (entities[player].hp) //FIXME

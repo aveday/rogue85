@@ -1,17 +1,19 @@
 #ifndef ENTITY_H
 #define ENTITY_H
 
+#include "random.h"
 #include "config.h"
 #include "graphics.h"
 #include "sprites.h"
 
 // TEMPLATE FLAGS
-#define PLAYER  1 << 1
-#define MONSTER 1 << 2
-#define TARGET  1 << 3
-#define WALL    1 << 4
-#define ITEM    1 << 5
-#define DOOR    1 << 6
+#define FEATURE (1 << 0)
+#define PLAYER  (1 << 1)
+#define MONSTER (1 << 2)
+#define TARGET  (1 << 3)
+#define WALL    (1 << 4)
+#define ITEM    (1 << 5)
+#define DOOR    (1 << 6)
 
 #define N_TEMPLATES (sizeof(templates) / sizeof(template_t))
 #define TEMPLATE(id) templates[entities[id].templateId]
@@ -44,12 +46,15 @@ uint8_t selected = 0;
 void basic_ai(entityId id);
 void player_control(entityId id);
 bool sword_attack(entityId id, int8_t dx, int8_t dy);
+bool next_level(entityId id);
 
 const template_t templates[] PROGMEM = {
   /*-ENVIRONMENT----|-------|-----|----------------|------------------|
   | sprite          | spawn |  hp |           type | action          */
-  { BRICK_S         ,  0x18 ,   5 ,           WALL , NULL             },
-  { DOOR_S          ,  0x18 ,   1 ,    DOOR|TARGET , NULL             },
+  { BRICK_S         ,  0x1F ,   5 ,           WALL , NULL             },
+  { DOOR_S          ,  0x11 ,   1 ,    DOOR|TARGET , NULL             },
+  { STAIRS_DOWN_S   ,  0x01 ,   1 ,        FEATURE , next_level       },
+  { STAIRS_UP_S     ,  0x00 ,   1 ,        FEATURE , NULL             },
 
   /*-MONSTERS-------|-------|-----|----------------|------------------|
   | sprite          | spawn |  hp |           type | action          */
@@ -60,7 +65,7 @@ const template_t templates[] PROGMEM = {
   /*-PLAYER & ITEMS-|-------|-----|----------------|------------------|
   | sprite          | spawn |  hp |           type | action          */
   { PLAYER_S        ,  0x01 ,  20 ,  PLAYER|TARGET , player_control   },
-  { SWORD_S         ,  0x18 ,  20 ,           ITEM , sword_attack     },   
+  { SWORD_S         ,  0x18 ,  20 ,           ITEM , sword_attack     },
   { WARRIOR_S       ,  0x00 ,  20 ,  PLAYER|TARGET , player_control   }, 
 };
 
@@ -71,25 +76,15 @@ entityId find_entity(uint8_t flag) {
 }
 
 uint8_t gen_template(uint8_t depth, uint8_t flags) {
-  uint16_t spawn_sum = 0;
+  uint8_t weights[N_TEMPLATES];
   for (uint8_t templateId = 0; templateId < N_TEMPLATES; ++templateId) {
     uint8_t tFlags = pgm_read_byte_near(&templates[templateId].flags);
-    uint8_t spawnrate = pgm_read_byte_near(&templates[templateId].spawnrate);
-    if (!~(~flags | tFlags) && DEPTH(spawnrate) <= depth)
-      spawn_sum += SPAWN(spawnrate);
+    uint8_t spawn = pgm_read_byte_near(&templates[templateId].spawnrate);
+      weights[templateId] = (!~(~flags | tFlags) && DEPTH(spawn) <= depth)
+        ? SPAWN(spawn)
+        : 0;
   }
-  uint16_t gen = rand() % spawn_sum;
-  for (uint8_t templateId = 0; templateId < N_TEMPLATES; ++templateId) {
-    uint8_t tFlags = pgm_read_byte_near(&templates[templateId].flags);
-    uint8_t spawnrate = pgm_read_byte_near(&templates[templateId].spawnrate);
-    if (!~(~flags | tFlags) && DEPTH(spawnrate) <= depth) {
-      if (gen < SPAWN(spawnrate))
-        return templateId;
-      else
-        gen -= SPAWN(spawnrate);
-    }
-  }
-  return 0;
+  return weighted_choice(weights, N_TEMPLATES);
 }
 
 entityId add_entity(uint8_t templateId, uint8_t pos) {
@@ -108,7 +103,6 @@ void remove_entity(entityId id) {
   level[entities[id].pos] = 0;
   entities[id].hp = 0;
   discover_rooms(entities[id].pos);
- 
 }
 
 bool in_bounds(uint8_t pos, int8_t dx, int8_t dy) {
@@ -131,6 +125,21 @@ bool move(entityId id, int8_t dx, int8_t dy) {
   entities[id].pos += dx + WIDTH * dy;
   level[entities[id].pos] = id;
   return true;
+}
+
+bool interact(entityId id, int8_t dx, int8_t dy) {
+  if (!in_bounds(entities[id].pos, dx, dy))
+      return false;
+
+  entityId target = relative(id, dx, dy);
+  if (!FLAG(target, FEATURE))
+    return false;
+
+  bool (*behaviour)(entityId) = FIELD(ptr, target, behaviour);
+  if (behaviour)
+    return behaviour(target);
+
+  return false;
 }
 
 bool attack(entityId id, int8_t dx, int8_t dy) {
@@ -234,7 +243,7 @@ bool handle_input(uint8_t input, entityId id) {
     case 0: return move(id, dx, dy);
     case A: return use_item(id, dx, dy);
     case B: return take(id, dx, dy);
-    case X: return false;
+    case X: return interact(id, dx, dy);
     case Y: return select(id, dx);
   }
   return false;
